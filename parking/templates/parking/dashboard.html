@@ -28,6 +28,9 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #0f172a; /* Slate 900 */
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.05) 0px, transparent 50%);
         }
         .font-title {
             font-family: 'Outfit', sans-serif;
@@ -76,6 +79,21 @@
             animation: pulse-glow 2s infinite ease-in-out;
         }
 
+        /* SVG Car entrance animation */
+        @keyframes car-slide-in {
+            0% {
+                transform: translateY(12px) scale(0.9);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+        .animate-car {
+            animation: car-slide-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
         /* Print styling for receipts */
         @media print {
             body * {
@@ -88,13 +106,12 @@
                 position: absolute;
                 left: 0;
                 top: 0;
-                width: 72mm; /* standard POS receipt width */
+                width: 72mm;
                 margin: 0;
                 padding: 10px;
                 color: #000 !important;
                 background: #fff !important;
             }
-            /* Reset print styles */
             .no-print {
                 display: none !important;
             }
@@ -104,7 +121,7 @@
 <body class="text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white antialiased">
 
     <!-- Top Navigation Bar -->
-    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-30 px-6 py-4 no-print">
+    <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30 px-6 py-4 no-print">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <!-- Brand / Logo -->
             <div class="flex items-center gap-3">
@@ -128,7 +145,7 @@
                 </div>
 
                 <!-- Rate config summary trigger -->
-                <div class="flex items-center gap-3.5 bg-slate-800/80 border border-slate-700/60 rounded-xl px-4 py-2 hover:border-indigo-500/50 transition cursor-pointer" onclick="openSettingsModal()">
+                <div class="flex items-center gap-3.5 bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-2 hover:border-indigo-500/50 transition cursor-pointer" onclick="openSettingsModal()">
                     <div class="flex flex-col">
                         <div class="text-[9px] text-slate-400 font-bold uppercase leading-none">Tarif Sozlamalari</div>
                         <div class="text-xs font-bold text-slate-200 mt-0.5"><span id="header-rate-display" class="tabular-nums">{{ hourly_rate|floatformat:0 }}</span> so'm/soat</div>
@@ -146,28 +163,28 @@
     <!-- Main Content Grid -->
     <main class="flex-grow max-w-7xl w-full mx-auto px-6 py-8 flex flex-col gap-8 no-print">
         
-        <!-- Summary Cards Grid -->
+        <!-- Summary Cards Grid (Glassmorphism layout) -->
         <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Total Spots -->
-            <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
+            <div class="bg-slate-900/40 backdrop-blur-md border border-slate-800/80 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
                 <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Jami Joylar</p>
                 <h3 id="stat-total-spots" class="text-3xl font-bold font-title mt-2 text-slate-100 tabular-nums">0</h3>
             </div>
             
             <!-- Free Spots -->
-            <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
+            <div class="bg-slate-900/40 backdrop-blur-md border border-slate-800/80 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
                 <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Bo'sh Joylar</p>
                 <h3 id="stat-free-spots" class="text-3xl font-bold font-title mt-2 text-emerald-400 tabular-nums">0</h3>
             </div>
 
             <!-- Occupied Spots -->
-            <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
+            <div class="bg-slate-900/40 backdrop-blur-md border border-slate-800/80 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
                 <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Band Joylar</p>
                 <h3 id="stat-occupied-spots" class="text-3xl font-bold font-title mt-2 text-rose-400 tabular-nums">0</h3>
             </div>
 
             <!-- Today's Earnings -->
-            <div class="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-5 relative overflow-hidden group hover:border-indigo-800/40 transition-all duration-300">
+            <div class="bg-indigo-950/20 backdrop-blur-md border border-indigo-900/30 rounded-2xl p-5 relative overflow-hidden group hover:border-indigo-800/40 transition-all duration-300">
                 <div class="flex items-center justify-between">
                     <p class="text-xs text-indigo-300 font-semibold uppercase tracking-wider">Bugungi Tushum</p>
                     <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-semibold border border-indigo-500/30">BUGUN</span>
@@ -177,43 +194,66 @@
         </section>
 
         <!-- Quick actions & Search bar -->
-        <section class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900/40 border border-slate-800 rounded-2xl p-4">
-            <!-- Search field -->
-            <div class="relative w-full sm:max-w-md">
-                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                </span>
-                <input type="text" id="search-plate" oninput="filterSpots()" placeholder="Raqam yoki joy kodi orqali qidirish..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+        <section class="flex flex-col lg:flex-row items-center justify-between gap-4 bg-slate-900/30 backdrop-blur-md border border-slate-800/80 rounded-2xl p-4">
+            
+            <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                <!-- Search field -->
+                <div class="relative w-full sm:w-80">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </span>
+                    <input type="text" id="search-plate" oninput="filterSpots()" placeholder="Raqam yoki joy kodi orqali qidirish..." class="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                </div>
+
+                <!-- Simulates physical scanning (Barcode Scanner input) -->
+                <div class="relative w-full sm:w-60">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <!-- Barcode icon -->
+                        <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5h2v14H3V5zm4 0h1v14H7V5zm3 0h3v14h-3V5zm5 0h1v14h-1V5zm3 0h2v14h-2V5z"/>
+                        </svg>
+                    </span>
+                    <input type="text" id="barcode-scanner-input" oninput="simulateBarcodeScan(this.value)" placeholder="Shtrix-kod skanerlash (#PK-...)" class="w-full bg-slate-950/80 border border-indigo-950 rounded-xl pl-9 pr-4 py-2 text-xs text-indigo-300 placeholder-indigo-900/60 focus:outline-none focus:border-indigo-500 transition-colors tracking-wide font-mono">
+                </div>
             </div>
 
             <!-- Buttons -->
-            <div class="flex items-center gap-3 w-full sm:w-auto">
-                <button onclick="toggleAnalyticsDrawer()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-4 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 border border-slate-700/60 transition-all">
+            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+                <!-- LPR Simulator button -->
+                <button onclick="triggerLPRSimulator()" class="w-full sm:w-auto bg-gradient-to-r from-violet-600/30 to-indigo-600/30 hover:from-violet-600/50 hover:to-indigo-600/50 text-indigo-200 border border-indigo-500/30 px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all">
+                    <!-- Camera LPR icon -->
+                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 00-2 2z"/>
+                    </svg>
+                    LPR Kamera (Raqamni aniqlash)
+                </button>
+                
+                <button onclick="toggleAnalyticsDrawer()" class="w-full sm:w-auto bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white px-4 py-2 rounded-xl font-medium text-xs flex items-center justify-center gap-2 border border-slate-700/60 transition-all">
                     <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.003 9.003 0 1020.945 13H11V3.055z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
                     </svg>
-                    Statistika va Tahlillar
+                    Tahlillar
                 </button>
-                <button onclick="openHistoryReportModal()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-4 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 border border-slate-700/60 transition-all">
+                <button onclick="openHistoryReportModal()" class="w-full sm:w-auto bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white px-4 py-2 rounded-xl font-medium text-xs flex items-center justify-center gap-2 border border-slate-700/60 transition-all">
                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                     </svg>
-                    Arxiv va Eksport
+                    Arxiv / Eksport
                 </button>
-                <button onclick="openCheckInWithDefault()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition-all">
+                <button onclick="openCheckInWithDefault()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition-all">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
-                    Kirishni Qayd Etish
+                    Kirishni qayd etish
                 </button>
             </div>
         </section>
 
-        <!-- ANALYTICS PANEL DRAWER (Collapsible) -->
-        <section id="analytics-drawer" class="hidden bg-slate-900/30 border border-slate-800 rounded-2xl p-6 transition-all duration-500">
+        <!-- ANALYTICS PANEL DRAWER -->
+        <section id="analytics-drawer" class="hidden bg-slate-900/30 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6 transition-all duration-500">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-6">
                 <h3 class="font-bold font-title text-slate-200 flex items-center gap-2">
                     <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,15 +265,15 @@
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Chart 1: Earnings (last 7 days) -->
+                <!-- Chart 1: Earnings -->
                 <div class="bg-slate-950/40 p-4 rounded-xl border border-slate-800">
                     <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Oxirgi 7 kunlik tushum tahlili (so'm)</h4>
                     <div id="chart-earnings-container" class="h-48 flex items-end justify-between gap-3 pt-6 px-4 pb-2">
-                        <!-- Custom SVG Chart loaded dynamically -->
+                        <!-- Loaded dynamically -->
                     </div>
                 </div>
 
-                <!-- Chart 2: Busy Hours (hourly traffic) -->
+                <!-- Chart 2: Traffic -->
                 <div class="bg-slate-950/40 p-4 rounded-xl border border-slate-800">
                     <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Kuning soatlar bo'yicha kirish trafigi (oxirgi 30 kun)</h4>
                     <div id="chart-traffic-container" class="h-48 flex items-end justify-between gap-1 pt-6 px-4 pb-2 overflow-x-auto">
@@ -259,7 +299,7 @@
                     </div>
                     <div class="flex items-center gap-1.5">
                         <span class="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-glow-cyan"></span>
-                        <span class="text-cyan-400">Nogironlar (0.0x / Bepul)</span>
+                        <span class="text-cyan-400">Nogironlar (Free)</span>
                     </div>
                 </div>
             </div>
@@ -267,7 +307,7 @@
             <!-- Map sections container -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <!-- Section A -->
-                <div class="bg-slate-900/30 border border-slate-800/80 rounded-2xl p-6">
+                <div class="bg-slate-900/30 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6">
                     <h3 class="text-sm font-bold font-title uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
                         <span>A Sektor (Kassa yaqinida)</span>
                     </h3>
@@ -277,7 +317,7 @@
                 </div>
 
                 <!-- Section B -->
-                <div class="bg-slate-900/30 border border-slate-800/80 rounded-2xl p-6">
+                <div class="bg-slate-900/30 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6">
                     <h3 class="text-sm font-bold font-title uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
                         <span>B Sektor (Chiqish yaqinida)</span>
                     </h3>
@@ -290,7 +330,7 @@
     </main>
 
     <!-- Page Footer -->
-    <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500 bg-slate-950 mt-auto no-print">
+    <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 bg-slate-950 mt-auto no-print">
         <p>© 2026 Parkovka - Smart Parking Control. Barcha huquqlar himoyalangan.</p>
     </footer>
 
@@ -326,11 +366,14 @@
                             </select>
                         </div>
 
-                        <!-- License Plate -->
+                        <!-- License Plate (with auto Uzbek plate formatting) -->
                         <div>
                             <label for="checkin-plate" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Davlat Raqami</label>
-                            <input type="text" id="checkin-plate" placeholder="Masalan: 01A123BC" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition text-lg tracking-wider font-semibold uppercase">
-                            <p class="text-[11px] text-slate-500 mt-1">Harflar va raqamlarni birga yozing (bo'shliqlarsiz).</p>
+                            <div class="relative">
+                                <input type="text" id="checkin-plate" oninput="handlePlateInput(this)" placeholder="Masalan: 01 A 123 BC" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition text-lg tracking-wider font-semibold uppercase">
+                                <span class="absolute inset-y-0 right-3 flex items-center text-[10px] text-slate-500 font-bold pointer-events-none uppercase">UZB</span>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-1">Avtomatik formatlanadi: 01 | A 123 BC yoki 01 | 123 AAA</p>
                         </div>
 
                         <!-- Submit Buttons -->
@@ -344,7 +387,7 @@
         </div>
     </div>
 
-    <!-- MODAL 2: CHECK-OUT (Chiqish va To'lov) -->
+    <!-- MODAL 2: CHECK-OUT -->
     <div id="modal-checkout" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <!-- Overlay -->
@@ -425,7 +468,7 @@
         </div>
     </div>
 
-    <!-- MODAL 3: SETTINGS (Tarif Sozlamalari) -->
+    <!-- MODAL 3: SETTINGS -->
     <div id="modal-settings" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <!-- Overlay -->
@@ -483,7 +526,7 @@
         </div>
     </div>
 
-    <!-- MODAL 4: HISTORY REPORT (Arxiv va Eksport) -->
+    <!-- MODAL 4: HISTORY REPORT -->
     <div id="modal-history" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <!-- Overlay -->
@@ -563,7 +606,7 @@
                             </tbody>
                         </table>
                         <div id="history-empty-message" class="text-center py-8 text-slate-500 font-medium hidden">
-                            Ma'lumot topilmadi. Sana yoki qidiruv so'rovini tekshiring.
+                            Ma'lumot topilmadi.
                         </div>
                     </div>
 
@@ -603,8 +646,8 @@
                         <!-- Content -->
                         <div class="flex flex-col gap-2">
                             <div class="flex justify-between">
-                                <span>TICKET NO:</span>
-                                <span id="receipt-no" class="font-bold">#PK-20260625-01</span>
+                                <span>CHIP NO:</span>
+                                <span id="receipt-no" class="font-bold text-indigo-900">#PK-12</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>DAVLAT RAQAMI:</span>
@@ -616,19 +659,19 @@
                             </div>
                             <div class="flex justify-between">
                                 <span>KIRISH VAQTI:</span>
-                                <span id="receipt-entry-time">25.06.2026 12:00</span>
+                                <span id="receipt-entry-time">-</span>
                             </div>
                             <div class="flex justify-between id-exit-row">
                                 <span>CHIQISH VAQTI:</span>
-                                <span id="receipt-exit-time">25.06.2026 15:30</span>
+                                <span id="receipt-exit-time">-</span>
                             </div>
                             <div class="flex justify-between id-exit-row">
                                 <span>TURGAN VAQTI:</span>
-                                <span id="receipt-duration">210 daqiqa</span>
+                                <span id="receipt-duration">-</span>
                             </div>
                         </div>
 
-                        <!-- Calculations in checkout receipt -->
+                        <!-- Calculations -->
                         <div id="receipt-billing-details" class="border-t border-dashed border-slate-400 pt-3 flex flex-col gap-1.5 text-[10px]">
                             <div class="flex justify-between">
                                 <span>Soatlik tarif:</span>
@@ -638,7 +681,7 @@
                                 <span>Bepul daqiqalar:</span>
                                 <span id="receipt-billing-free">10 min</span>
                             </div>
-                            <div class="flex justify-between text-indigo-900 font-semibold">
+                            <div class="flex justify-between text-indigo-950 font-semibold">
                                 <span>Joy koeffitsiyenti:</span>
                                 <span id="receipt-billing-multiplier">1.0x</span>
                             </div>
@@ -650,10 +693,9 @@
                             <div id="receipt-total-amount" class="text-xl font-bold text-slate-900 mt-1">35,000 so'm</div>
                         </div>
 
-                        <!-- Fake Barcode / QR Code simulation -->
+                        <!-- Barcode / QR Code simulation -->
                         <div class="flex flex-col items-center gap-1 mt-2">
                             <div class="w-full flex items-center justify-center gap-0.5 h-8 bg-slate-950 p-1">
-                                <!-- Draw mock barcode blocks -->
                                 <div class="w-0.5 h-full bg-white"></div>
                                 <div class="w-1.5 h-full bg-white"></div>
                                 <div class="w-0.5 h-full bg-white"></div>
@@ -666,13 +708,13 @@
                                 <div class="w-1 h-full bg-white"></div>
                                 <div class="w-2 h-full bg-white"></div>
                                 <div class="w-0.5 h-full bg-white"></div>
-                                <div class="w-1 h-full bg-white"></div>
+                                <div class="w-1.5 h-full bg-white"></div>
                             </div>
                             <p class="text-[8px] text-slate-500 uppercase tracking-widest">PARKOVKA SMART CONTROL</p>
                         </div>
                     </div>
 
-                    <!-- Print / Print Simulator options -->
+                    <!-- Print buttons -->
                     <div class="flex items-center gap-3 border-t border-slate-800 pt-4">
                         <button type="button" onclick="closeReceiptPreviewModal()" class="flex-grow py-2.5 rounded-xl border border-slate-700/60 hover:bg-slate-800 font-semibold text-slate-300 text-sm transition">Yopish</button>
                         <button onclick="triggerBrowserPrint()" class="flex-grow py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-sm shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition flex items-center justify-center gap-2">
@@ -688,7 +730,7 @@
     </div>
 
     <!-- Isolated Section for actual printing -->
-    <div id="print-receipt-section" class="hidden"></div>
+    <div id="print-receipt-section" class="hidden text-black bg-white font-mono p-4"></div>
 
     <!-- Global Toast Alert Banner -->
     <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none no-print">
@@ -711,7 +753,6 @@
         window.addEventListener('DOMContentLoaded', () => {
             fetchSpots();
             startClock();
-            // Auto refresh spots every 10 seconds
             setInterval(fetchSpots, 10000);
         });
 
@@ -738,6 +779,48 @@
         // Pretty format UZS amounts
         function formatUZS(amount) {
             return new Intl.NumberFormat('uz-UZ').format(amount) + " so'm";
+        }
+
+        // Auto format license plate numbers dynamically as the guard types
+        function handlePlateInput(input) {
+            let cursor = input.selectionStart;
+            let val = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            let formatted = '';
+            
+            // Format options:
+            // 01 A 123 BC  or  01 123 AAA
+            if (val.length > 0) {
+                // First 2 digits (region code)
+                formatted += val.substring(0, 2);
+                if (val.length > 2) {
+                    formatted += ' | ';
+                    const afterRegion = val.substring(2);
+                    
+                    if (isNaN(afterRegion[0])) {
+                        // Starts with letter: e.g. A 123 BC
+                        formatted += afterRegion[0]; // letter
+                        if (afterRegion.length > 1) {
+                            formatted += ' ' + afterRegion.substring(1, 4); // digits
+                            if (afterRegion.length > 4) {
+                                formatted += ' ' + afterRegion.substring(4, 6); // suffix letters
+                            }
+                        }
+                    } else {
+                        // Starts with digit: e.g. 123 AAA
+                        formatted += afterRegion.substring(0, 3); // digits
+                        if (afterRegion.length > 3) {
+                            formatted += ' ' + afterRegion.substring(3, 6); // letters
+                        }
+                    }
+                }
+            }
+            
+            input.value = formatted;
+        }
+
+        // Parse Uzbek raw text plate back into database format (no spacing/dividers)
+        function cleanPlate(formattedValue) {
+            return formattedValue.replace(/[^A-Z0-9]/g, '');
         }
 
         // Show Toast notifications
@@ -791,7 +874,6 @@
                 })
                 .catch(err => {
                     console.error("Spots fetch error:", err);
-                    showToast("Ma'lumotlarni yangilashda xatolik yuz berdi.", "error");
                 });
         }
 
@@ -812,7 +894,50 @@
                 });
         }
 
-        // Render spot elements to grid
+        // Interactive Car Vector graphics
+        function getCarSVG(spotType) {
+            let bodyColor = "#6366f1"; // Indigo for Standard
+            if (spotType === 'VIP') bodyColor = "#eab308"; // Gold
+            else if (spotType === 'DISABLED') bodyColor = "#06b6d4"; // Cyan
+            
+            return `
+                <svg viewBox="0 0 100 60" class="w-16 h-10 animate-car select-none opacity-90 drop-shadow-[0_4px_6px_rgba(0,0,0,0.4)]">
+                    <!-- Wheels -->
+                    <rect x="15" y="0" width="14" height="6" rx="2" fill="#000" />
+                    <rect x="70" y="0" width="14" height="6" rx="2" fill="#000" />
+                    <rect x="15" y="54" width="14" height="6" rx="2" fill="#000" />
+                    <rect x="70" y="54" width="14" height="6" rx="2" fill="#000" />
+                    
+                    <!-- Car Body Shadow -->
+                    <rect x="5" y="5" width="90" height="50" rx="14" fill="#090d16" opacity="0.3" />
+                    
+                    <!-- Car Base Body -->
+                    <rect x="6" y="5" width="88" height="50" rx="12" fill="${bodyColor}" />
+                    
+                    <!-- Roof/Cabin Glass -->
+                    <rect x="25" y="9" width="44" height="42" rx="8" fill="#1e293b" />
+                    <rect x="30" y="12" width="34" height="36" rx="6" fill="#0f172a" />
+                    
+                    <!-- Front/Back Windshields -->
+                    <path d="M 28 14 L 28 46 L 24 40 L 24 20 Z" fill="#475569" opacity="0.6" />
+                    <path d="M 68 14 L 68 46 L 73 41 L 73 19 Z" fill="#475569" opacity="0.6" />
+                    
+                    <!-- Headlights (Yellow glowing beams) -->
+                    <rect x="91" y="10" width="4" height="8" rx="1" fill="#fef08a" />
+                    <rect x="91" y="42" width="4" height="8" rx="1" fill="#fef08a" />
+                    
+                    <!-- Taillights (Red) -->
+                    <rect x="5" y="10" width="2" height="8" fill="#f43f5e" />
+                    <rect x="5" y="42" width="2" height="8" fill="#f43f5e" />
+                    
+                    <!-- Side Mirrors -->
+                    <rect x="26" y="1" width="4" height="5" rx="1" fill="${bodyColor}" />
+                    <rect x="26" y="54" width="4" height="5" rx="1" fill="${bodyColor}" />
+                </svg>
+            `;
+        }
+
+        // Render spot elements to grid (Beautiful Glass cards)
         function renderSpots(spots) {
             const gridA = document.getElementById('grid-section-A');
             const gridB = document.getElementById('grid-section-B');
@@ -823,59 +948,67 @@
             spots.forEach(spot => {
                 const card = document.createElement('button');
                 
-                // Color, text, and icons configurations based on Spot Type & occupancy status
                 let glowColorClass = 'animate-glow-green';
                 let typeBadge = '';
-                let borderStyleClass = 'bg-emerald-950/10 border-emerald-500/30 text-emerald-400 hover:border-emerald-400 hover:bg-emerald-950/20';
+                let borderStyleClass = '';
                 
                 // Determine styling based on spot type
                 if (spot.spot_type === 'VIP') {
                     glowColorClass = spot.is_occupied ? 'animate-glow-red' : 'animate-glow-gold';
-                    typeBadge = `<span class="text-[9px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-1.5 py-0.5 rounded font-black">VIP</span>`;
+                    typeBadge = `<span class="text-[8px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-1.5 py-0.5 rounded font-black tracking-wider">VIP</span>`;
                     borderStyleClass = spot.is_occupied 
-                        ? 'bg-rose-950/15 border-rose-500/40 text-rose-300 hover:border-rose-400 hover:bg-rose-950/25'
-                        : 'bg-yellow-950/10 border-yellow-500/30 text-yellow-400 hover:border-yellow-400 hover:bg-yellow-950/20';
+                        ? 'bg-rose-950/10 border-rose-500/30 text-rose-300 hover:border-rose-400 hover:bg-rose-950/20'
+                        : 'bg-yellow-950/5 border-yellow-500/20 text-yellow-400 hover:border-yellow-400 hover:bg-yellow-950/15';
                 } else if (spot.spot_type === 'DISABLED') {
                     glowColorClass = spot.is_occupied ? 'animate-glow-red' : 'animate-glow-cyan';
-                    typeBadge = `<span class="text-[9px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded font-black flex items-center gap-0.5">♿ Nogiron</span>`;
+                    typeBadge = `<span class="text-[8px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded font-black flex items-center gap-0.5">♿ Nogiron</span>`;
                     borderStyleClass = spot.is_occupied
-                        ? 'bg-rose-950/15 border-rose-500/40 text-rose-300 hover:border-rose-400 hover:bg-rose-950/25'
-                        : 'bg-cyan-950/10 border-cyan-500/30 text-cyan-400 hover:border-cyan-400 hover:bg-cyan-950/20';
+                        ? 'bg-rose-950/10 border-rose-500/30 text-rose-300 hover:border-rose-400 hover:bg-rose-950/20'
+                        : 'bg-cyan-950/5 border-cyan-500/20 text-cyan-400 hover:border-cyan-400 hover:bg-cyan-950/15';
                 } else {
                     glowColorClass = spot.is_occupied ? 'animate-glow-red' : 'animate-glow-green';
-                    typeBadge = `<span class="text-[9px] text-slate-500 font-bold uppercase">Standard</span>`;
+                    typeBadge = `<span class="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Standard</span>`;
                     borderStyleClass = spot.is_occupied
-                        ? 'bg-rose-950/15 border-rose-500/40 text-rose-300 hover:border-rose-400 hover:bg-rose-950/25'
-                        : 'bg-emerald-950/10 border-emerald-500/30 text-emerald-400 hover:border-emerald-400 hover:bg-emerald-950/20';
+                        ? 'bg-rose-950/10 border-rose-500/30 text-rose-300 hover:border-rose-400 hover:bg-rose-950/20'
+                        : 'bg-emerald-950/5 border-emerald-500/20 text-emerald-400 hover:border-emerald-400 hover:bg-emerald-950/15';
                 }
 
                 if (spot.is_occupied) {
-                    card.className = `flex flex-col items-center justify-between p-4 rounded-xl border transition-all duration-300 text-left relative overflow-hidden group ${borderStyleClass}`;
+                    // Extract region code from plate for premium rendering: e.g. "01 | A 123 BC"
+                    let displayPlate = spot.plate;
+                    if (spot.plate.length >= 7) {
+                        displayPlate = spot.plate.substring(0,2) + " | " + spot.plate.substring(2);
+                    }
+                    
+                    card.className = `flex flex-col items-center justify-between p-4 rounded-2xl border transition-all duration-300 text-left relative overflow-hidden group ${borderStyleClass} hover:shadow-lg shadow-black/35`;
                     card.innerHTML = `
-                        <div class="w-full flex items-center justify-between">
-                            <span class="text-sm font-black font-title tracking-wide text-slate-100">${spot.code}</span>
+                        <div class="w-full flex items-center justify-between z-10">
+                            <span class="text-xs font-black font-title tracking-wide text-slate-400">${spot.code}</span>
                             <span class="w-2 h-2 rounded-full bg-rose-500 animate-glow-red"></span>
                         </div>
-                        <div class="w-full mt-3 flex justify-between items-end">
-                            <div>
-                                <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">RAQAM</div>
-                                <div class="text-xs font-black tracking-wider text-indigo-300 uppercase">${spot.plate}</div>
-                            </div>
+                        
+                        <!-- Visual top-down car icon parked -->
+                        <div class="my-1.5 flex justify-center w-full z-10">
+                            ${getCarSVG(spot.spot_type)}
+                        </div>
+                        
+                        <div class="w-full flex justify-between items-center z-10 border-t border-slate-800/40 pt-2 mt-1">
+                            <div class="text-[10px] font-black tracking-wider text-slate-200 font-mono uppercase">${displayPlate}</div>
                             ${typeBadge}
                         </div>
                     `;
                     card.onclick = () => openCheckOutModal(spot.session_id);
                 } else {
-                    card.className = `flex flex-col items-center justify-between p-4 rounded-xl border transition-all duration-300 text-left relative overflow-hidden group ${borderStyleClass}`;
+                    card.className = `flex flex-col items-center justify-between p-4 rounded-2xl border transition-all duration-300 text-left relative overflow-hidden group ${borderStyleClass} hover:shadow-lg shadow-black/25`;
                     card.innerHTML = `
-                        <div class="w-full flex items-center justify-between">
-                            <span class="text-sm font-black font-title tracking-wide text-slate-100">${spot.code}</span>
-                            <span class="w-2.5 h-2.5 rounded-full ${glowColorClass}"></span>
+                        <div class="w-full flex items-center justify-between z-10">
+                            <span class="text-xs font-black font-title tracking-wide text-slate-200">${spot.code}</span>
+                            <span class="w-2 h-2 rounded-full ${glowColorClass}"></span>
                         </div>
-                        <div class="w-full mt-3 flex justify-between items-center">
+                        <div class="w-full mt-7 flex justify-between items-center z-10">
                             ${typeBadge}
-                            <span class="opacity-0 group-hover:opacity-100 text-[10px] text-indigo-400 font-bold transition-opacity flex items-center gap-0.5">
-                                Kirish 
+                            <span class="opacity-0 group-hover:opacity-100 text-[10px] text-indigo-400 font-extrabold transition-opacity flex items-center gap-0.5">
+                                Band qilish 
                                 <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                             </span>
                         </div>
@@ -907,6 +1040,79 @@
             });
             
             renderSpots(filtered);
+        }
+
+        // AUTOMATION: Simulated Barcode ticket scanner
+        function simulateBarcodeScan(val) {
+            const trimmed = val.trim().toUpperCase();
+            if (!trimmed) return;
+            
+            // Format check: e.g. #PK-IN-12 or just 12
+            let sessionId = null;
+            if (trimmed.startsWith('#PK-IN-') || trimmed.startsWith('#PK-OUT-')) {
+                sessionId = trimmed.split('-').pop();
+            } else if (!isNaN(trimmed)) {
+                sessionId = trimmed;
+            }
+            
+            if (sessionId) {
+                // If it matches a session in our active sessions, open checkout modal!
+                // Clear input
+                document.getElementById('barcode-scanner-input').value = '';
+                document.getElementById('barcode-scanner-input').blur();
+                
+                showToast(`Shtrix-kod sknerlandi: Sessiya #${sessionId}`);
+                
+                // Open checkout modal directly
+                closeCheckInModal();
+                closeHistoryReportModal();
+                closeSettingsModal();
+                openCheckOutModal(sessionId);
+            }
+        }
+
+        // AUTOMATION: Smart LPR (License Plate Recognition) camera simulator
+        function triggerLPRSimulator() {
+            // Find a free spot (prefer VIP or first available)
+            const freeSpots = globalSpots.filter(s => !s.is_occupied);
+            if (freeSpots.length === 0) {
+                showToast("Barcha parking joylari band! LPR simulyatori to'xtatildi.", "error");
+                return;
+            }
+            
+            // Randomly choose standard or VIP or disabled
+            const randomSpot = freeSpots[Math.floor(Math.random() * freeSpots.length)];
+            
+            // Generate random Uzbek Plate number: e.g. 01A123BC or 01123AAA
+            const regions = ['01', '10', '30', '80', '60', '70', '90'];
+            const letters = 'ABCEFHOP';
+            
+            const region = regions[Math.floor(Math.random() * regions.length)];
+            let plate = '';
+            
+            if (Math.random() > 0.4) {
+                // Format type 1: 01A123BC
+                const letter1 = letters[Math.floor(Math.random() * letters.length)];
+                const num = Math.floor(100 + Math.random() * 900); // 3 digits
+                const letter2 = letters[Math.floor(Math.random() * letters.length)];
+                const letter3 = letters[Math.floor(Math.random() * letters.length)];
+                plate = `${region}${letter1}${num}${letter2}${letter3}`;
+            } else {
+                // Format type 2: 01123AAA
+                const num = Math.floor(100 + Math.random() * 900);
+                const letter1 = letters[Math.floor(Math.random() * letters.length)];
+                const letter2 = letters[Math.floor(Math.random() * letters.length)];
+                const letter3 = letters[Math.floor(Math.random() * letters.length)];
+                plate = `${region}${num}${letter1}${letter2}${letter3}`;
+            }
+            
+            showToast(`LPR Kamera raqamni aniqladi: ${plate.substring(0,2)} | ${plate.substring(2)}`);
+            
+            // Prefill and open checkin modal
+            openCheckInModal(randomSpot.code);
+            const inputEl = document.getElementById('checkin-plate');
+            inputEl.value = plate;
+            handlePlateInput(inputEl); // format visually
         }
 
 
@@ -951,7 +1157,8 @@
         function submitCheckIn(event) {
             event.preventDefault();
             const spot_code = document.getElementById('checkin-spot').value;
-            const plate = document.getElementById('checkin-plate').value.trim();
+            const formattedPlate = document.getElementById('checkin-plate').value;
+            const plate = cleanPlate(formattedPlate);
             
             if (!plate) {
                 showToast("Davlat raqamini kiriting", "error");
@@ -1004,7 +1211,6 @@
             const modal = document.getElementById('modal-checkout');
             document.getElementById('checkout-session-id').value = sessionId;
             
-            // Reset text
             document.getElementById('checkout-spot-display').textContent = '-';
             document.getElementById('checkout-spot-type-display').textContent = '-';
             document.getElementById('checkout-plate-display').textContent = '-';
@@ -1024,7 +1230,12 @@
                         } else {
                             document.getElementById('checkout-spot-display').textContent = data.spot_code;
                             document.getElementById('checkout-spot-type-display').textContent = data.spot_type_display;
-                            document.getElementById('checkout-plate-display').textContent = data.plate;
+                            
+                            let formatted = data.plate;
+                            if (data.plate.length >= 7) {
+                                formatted = data.plate.substring(0,2) + " | " + data.plate.substring(2);
+                            }
+                            document.getElementById('checkout-plate-display').textContent = formatted;
                             document.getElementById('checkout-multiplier-display').textContent = `${data.multiplier}x`;
                             
                             const entryDate = new Date(data.entry_time);
@@ -1046,7 +1257,6 @@
                             document.getElementById('checkout-duration-display').textContent = durationText;
                             document.getElementById('checkout-amount-display').textContent = formatUZS(data.amount);
                             
-                            // Show bepul badge row if active
                             const freeRow = document.getElementById('checkout-free-applied-row');
                             if (minutes <= data.settings.free_minutes) {
                                 freeRow.classList.remove('hidden');
@@ -1054,7 +1264,6 @@
                                 freeRow.classList.add('hidden');
                             }
 
-                            // Dynamic dot glow styling
                             const badgeDot = document.getElementById('checkout-badge-dot');
                             badgeDot.className = "w-2.5 h-2.5 rounded-full animate-glow-red bg-rose-500";
                             if (data.spot_type === 'VIP') {
@@ -1189,7 +1398,6 @@
         function openHistoryReportModal() {
             const modal = document.getElementById('modal-history');
             
-            // Set defaults to today
             const todayStr = new Date().toISOString().substring(0, 10);
             document.getElementById('history-start-date').value = todayStr;
             document.getElementById('history-end-date').value = todayStr;
@@ -1206,7 +1414,8 @@
         function fetchHistoryReport() {
             const start = document.getElementById('history-start-date').value;
             const end = document.getElementById('history-end-date').value;
-            const plate = document.getElementById('history-plate').value.trim();
+            const formattedPlate = document.getElementById('history-plate').value.trim();
+            const plate = cleanPlate(formattedPlate);
             
             const tbody = document.getElementById('history-table-body');
             tbody.innerHTML = '';
@@ -1233,8 +1442,13 @@
                             if (sess.spot_type === 'VIP') typeStyle = 'text-yellow-400 font-bold';
                             else if (sess.spot_type === 'DISABLED') typeStyle = 'text-cyan-400 font-bold';
 
+                            let displayPlate = sess.plate;
+                            if (sess.plate.length >= 7) {
+                                displayPlate = sess.plate.substring(0,2) + " | " + sess.plate.substring(2);
+                            }
+
                             tr.innerHTML = `
-                                <td class="py-3 px-4 font-black text-indigo-400 tracking-wider uppercase">${sess.plate}</td>
+                                <td class="py-3 px-4 font-black text-indigo-400 tracking-wider uppercase font-mono">${displayPlate}</td>
                                 <td class="py-3 px-4 font-bold text-slate-100">${sess.spot_code}</td>
                                 <td class="py-3 px-4 text-xs ${typeStyle}">${sess.spot_type_display}</td>
                                 <td class="py-3 px-4 text-slate-400 tabular-nums">${inTime}</td>
@@ -1255,9 +1469,9 @@
         function triggerExportCSV() {
             const start = document.getElementById('history-start-date').value;
             const end = document.getElementById('history-end-date').value;
-            const plate = document.getElementById('history-plate').value.trim();
+            const formattedPlate = document.getElementById('history-plate').value.trim();
+            const plate = cleanPlate(formattedPlate);
             
-            // Redirect browser directly to trigger file attachment download
             window.location.href = `/api/export-csv/?start_date=${start}&end_date=${end}&plate=${plate}`;
         }
 
@@ -1267,7 +1481,13 @@
             const modal = document.getElementById('modal-receipt-preview');
             
             document.getElementById('receipt-no').textContent = receiptData.ticketNo;
-            document.getElementById('receipt-plate').textContent = receiptData.plate.replace(/(.{2})(.{3})(.{2})/g, '$1 $2 $3'); // format Uzbekistan plates
+            
+            // Pretty spacing for ticket plate
+            let formatted = receiptData.plate;
+            if (receiptData.plate.length >= 7) {
+                formatted = receiptData.plate.substring(0, 2) + " | " + receiptData.plate.substring(2, 3) + " " + receiptData.plate.substring(3, 6) + " " + receiptData.plate.substring(6);
+            }
+            document.getElementById('receipt-plate').textContent = formatted;
             document.getElementById('receipt-spot').textContent = receiptData.spot;
             document.getElementById('receipt-entry-time').textContent = receiptData.entryTime;
             
@@ -1303,12 +1523,10 @@
 
         // Print function
         function triggerBrowserPrint() {
-            // Copy receipt paper HTML content into the print-specific container
             const receiptPaperHTML = document.getElementById('receipt-paper').outerHTML;
             const printSection = document.getElementById('print-receipt-section');
             printSection.innerHTML = receiptPaperHTML;
             
-            // Show print section, print, and hide it
             printSection.classList.remove('hidden');
             window.print();
             printSection.classList.add('hidden');
@@ -1341,7 +1559,6 @@
                 });
         }
 
-        // Render line/bar SVG chart for earnings
         function renderEarningsChart(trend) {
             const container = document.getElementById('chart-earnings-container');
             container.innerHTML = '';
@@ -1349,25 +1566,21 @@
             const maxVal = Math.max(...trend.map(t => t.value), 10000);
             
             trend.forEach(t => {
-                const barHeightPct = (t.value / maxVal) * 80; // max 80% height
+                const barHeightPct = (t.value / maxVal) * 80;
                 
                 const col = document.createElement('div');
                 col.className = "flex flex-col items-center flex-grow group/bar relative cursor-pointer";
                 col.innerHTML = `
-                    <!-- Tooltip -->
                     <span class="absolute -top-6 scale-0 group-hover/bar:scale-100 bg-slate-900 border border-slate-700 text-indigo-300 font-bold px-2 py-0.5 rounded text-[10px] transition-all whitespace-nowrap z-10 tabular-nums">
                         ${formatUZS(t.value)}
                     </span>
-                    <!-- Bar -->
                     <div style="height: ${Math.max(barHeightPct, 4)}%" class="w-full max-w-[32px] bg-gradient-to-t from-indigo-600/80 to-violet-500 rounded-t-lg transition-all duration-700 ease-out group-hover/bar:from-indigo-500 group-hover/bar:to-violet-400 group-hover/bar:shadow-lg group-hover/bar:shadow-indigo-500/20"></div>
-                    <!-- Label -->
                     <span class="text-[10px] text-slate-500 font-semibold mt-2">${t.label}</span>
                 `;
                 container.appendChild(col);
             });
         }
 
-        // Render bar SVG chart for hourly traffic
         function renderTrafficChart(traffic) {
             const container = document.getElementById('chart-traffic-container');
             container.innerHTML = '';
@@ -1380,13 +1593,10 @@
                 const col = document.createElement('div');
                 col.className = "flex flex-col items-center min-w-[20px] flex-grow group/bar relative cursor-pointer";
                 col.innerHTML = `
-                    <!-- Tooltip -->
                     <span class="absolute -top-6 scale-0 group-hover/bar:scale-100 bg-slate-900 border border-slate-700 text-indigo-300 font-bold px-1.5 py-0.5 rounded text-[9px] transition-all whitespace-nowrap z-10 tabular-nums">
                         ${t.value} ta
                     </span>
-                    <!-- Bar -->
                     <div style="height: ${Math.max(barHeightPct, 2)}%" class="w-full max-w-[8px] bg-slate-800 rounded-t-sm group-hover/bar:bg-indigo-500 transition-all duration-500 ease-out"></div>
-                    <!-- Label -->
                     <span class="text-[8px] text-slate-600 font-semibold mt-2 select-none">${t.label.split(':')[0]}</span>
                 `;
                 container.appendChild(col);
