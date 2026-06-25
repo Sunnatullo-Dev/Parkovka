@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="uz" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parkovka — Smart Parking Control Panel</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+        }
+        .font-title {
+            font-family: 'Outfit', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        
+        /* Soft glow animation for status dots */
+        @keyframes pulse-glow {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+        .animate-glow-green {
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+        .animate-glow-red {
+            box-shadow: 0 0 8px #f43f5e;
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white antialiased">
+
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-30 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <!-- Brand / Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold font-title bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent tracking-tight">PARKOVKA</h1>
+                    <p class="text-xs text-slate-400 font-medium">Boshqaruv Paneli</p>
+                </div>
+            </div>
+
+            <!-- Real-time Clock & Status -->
+            <div class="flex items-center gap-6">
+                <!-- Clock -->
+                <div class="text-right hidden sm:block">
+                    <div id="live-time" class="text-lg font-semibold font-title tabular-nums text-indigo-400">12:00:00</div>
+                    <div id="live-date" class="text-xs text-slate-400 font-medium">25-iyun, 2026</div>
+                </div>
+
+                <!-- Rate display & Setting trigger -->
+                <div class="flex items-center gap-2 bg-slate-800/80 border border-slate-700/60 rounded-xl px-4 py-2 hover:border-indigo-500/50 transition cursor-pointer" onclick="openSettingsModal()">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <div class="text-[10px] text-slate-400 font-semibold leading-none uppercase">Tarif</div>
+                        <div class="text-xs font-bold text-slate-200"><span id="header-rate-display" class="tabular-nums">{{ hourly_rate|floatformat:0 }}</span> UZS / soat</div>
+                    </div>
+                    <svg class="w-4 h-4 text-slate-400 ml-1 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-6 py-8 flex flex-col gap-8">
+        
+        <!-- Summary Cards Grid -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total Spots -->
+            <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
+                <div class="absolute -right-3 -bottom-3 text-slate-800/20 group-hover:text-slate-800/30 transition-colors">
+                    <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+                </div>
+                <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Jami Joylar</p>
+                <h3 id="stat-total-spots" class="text-3xl font-bold font-title mt-2 text-slate-100 tabular-nums">0</h3>
+            </div>
+            
+            <!-- Free Spots -->
+            <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
+                <div class="absolute -right-3 -bottom-3 text-emerald-950/20 group-hover:text-emerald-950/30 transition-colors">
+                    <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                </div>
+                <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Bo'sh Joylar</p>
+                <h3 id="stat-free-spots" class="text-3xl font-bold font-title mt-2 text-emerald-400 tabular-nums">0</h3>
+            </div>
+
+            <!-- Occupied Spots -->
+            <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
+                <div class="absolute -right-3 -bottom-3 text-rose-950/20 group-hover:text-rose-950/30 transition-colors">
+                    <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+                </div>
+                <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Band Joylar</p>
+                <h3 id="stat-occupied-spots" class="text-3xl font-bold font-title mt-2 text-rose-400 tabular-nums">0</h3>
+            </div>
+
+            <!-- Today's Earnings -->
+            <div class="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-5 relative overflow-hidden group hover:border-indigo-800/40 transition-all duration-300">
+                <div class="absolute -right-3 -bottom-3 text-indigo-900/20 group-hover:text-indigo-900/30 transition-colors">
+                    <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.25z"/></svg>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-xs text-indigo-300 font-semibold uppercase tracking-wider">Bugungi Tushum</p>
+                    <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-semibold border border-indigo-500/30">BUGUN</span>
+                </div>
+                <h3 id="stat-today-revenue" class="text-3xl font-bold font-title mt-2 text-indigo-300 tabular-nums">0 UZS</h3>
+            </div>
+        </section>
+
+        <!-- Quick actions & Search bar -->
+        <section class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900/40 border border-slate-800 rounded-2xl p-4">
+            <!-- Search field -->
+            <div class="relative w-full sm:max-w-md">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </span>
+                <input type="text" id="search-plate" oninput="filterSpots()" placeholder="Davlat raqamini yoki joyni qidiring (masalan, 01A123BC)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <button onclick="openReportModal()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-5 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 border border-slate-700/60 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Bugungi Hisobot
+                </button>
+                <button onclick="openCheckInWithDefault()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Kirishni Qayd Etish
+                </button>
+            </div>
+        </section>
+
+        <!-- Parking Spots Layout Map -->
+        <section class="flex flex-col gap-6">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h2 class="text-lg font-bold font-title tracking-tight text-slate-200">Parking Joylari Xaritasi</h2>
+                <!-- Map Legend -->
+                <div class="flex items-center gap-4 text-xs font-semibold">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500 animate-glow-green"></span>
+                        <span class="text-slate-400">Bo'sh</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-rose-500 animate-glow-red"></span>
+                        <span class="text-slate-400">Band</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map sections container -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Section A -->
+                <div class="bg-slate-900/30 border border-slate-800/80 rounded-2xl p-6">
+                    <h3 class="text-sm font-bold font-title uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
+                        <span>A Sektor</span>
+                        <span class="text-xs font-medium text-slate-500">Kassa yaqinida</span>
+                    </h3>
+                    <div id="grid-section-A" class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Section B -->
+                <div class="bg-slate-900/30 border border-slate-800/80 rounded-2xl p-6">
+                    <h3 class="text-sm font-bold font-title uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
+                        <span>B Sektor</span>
+                        <span class="text-xs font-medium text-slate-500">Chiqish yaqinida</span>
+                    </h3>
+                    <div id="grid-section-B" class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Page Footer -->
+    <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500 bg-slate-950 mt-auto">
+        <p>© 2026 Parkovka - Smart Parking Control. Barcha huquqlar himoyalangan.</p>
+    </footer>
+
+    <!-- MODAL 1: CHECK-IN (Kirish) -->
+    <div id="modal-checkin" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Overlay -->
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeCheckInModal()">
+                <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <!-- Modal panel -->
+            <div class="inline-block align-bottom bg-slate-900 border border-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+                <div class="px-6 pt-6 pb-4">
+                    <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                        <h3 class="text-lg font-bold font-title text-slate-100 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-glow-green"></span>
+                            Kirishni Qayd Etish
+                        </h3>
+                        <button onclick="closeCheckInModal()" class="text-slate-400 hover:text-white transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <form id="form-checkin" class="mt-4 flex flex-col gap-4" onsubmit="submitCheckIn(event)">
+                        <!-- Selected Spot -->
+                        <div>
+                            <label for="checkin-spot" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Parking Joyi</label>
+                            <select id="checkin-spot" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-indigo-500 transition">
+                                <!-- Loaded dynamically -->
+                            </select>
+                        </div>
+
+                        <!-- License Plate -->
+                        <div>
+                            <label for="checkin-plate" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Davlat Raqami</label>
+                            <input type="text" id="checkin-plate" placeholder="Masalan: 01A123BC" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition text-lg tracking-wider font-semibold uppercase">
+                            <p class="text-[11px] text-slate-500 mt-1">Harflar va raqamlarni birga yozing (bo'shliqlarsiz).</p>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="mt-6 flex justify-end gap-3 border-t border-slate-800 pt-4">
+                            <button type="button" onclick="closeCheckInModal()" class="px-5 py-2.5 rounded-xl border border-slate-700/60 hover:bg-slate-800 font-semibold text-slate-300 text-sm transition">Bekor Qilish</button>
+                            <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-sm shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition">Kirishni Saqlash</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: CHECK-OUT (Chiqish va To'lov) -->
+    <div id="modal-checkout" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Overlay -->
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeCheckOutModal()">
+                <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <!-- Modal panel -->
+            <div class="inline-block align-bottom bg-slate-900 border border-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+                <div class="px-6 pt-6 pb-4">
+                    <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                        <h3 class="text-lg font-bold font-title text-slate-100 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-glow-red"></span>
+                            Chiqishni Qayd Etish & To'lov
+                        </h3>
+                        <button onclick="closeCheckOutModal()" class="text-slate-400 hover:text-white transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Checkout Details -->
+                    <div class="mt-4 flex flex-col gap-4">
+                        <input type="hidden" id="checkout-session-id">
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-500 font-semibold uppercase">Joy</span>
+                                <div id="checkout-spot-display" class="text-lg font-bold font-title text-slate-100 mt-1">A1</div>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-500 font-semibold uppercase">Davlat Raqami</span>
+                                <div id="checkout-plate-display" class="text-lg font-bold font-title text-indigo-400 mt-1">01A123BC</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col gap-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Kirish vaqti:</span>
+                                <span id="checkout-entry-display" class="font-medium text-slate-200 tabular-nums">25.06.2026 12:00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Hozirgi vaqt:</span>
+                                <span id="checkout-now-display" class="font-medium text-slate-200 tabular-nums">25.06.2026 15:30</span>
+                            </div>
+                            <div class="border-t border-slate-800 my-1 pt-1.5 flex justify-between">
+                                <span class="text-slate-400 font-medium">Turgan vaqti:</span>
+                                <span id="checkout-duration-display" class="font-semibold text-slate-100 tabular-nums">0 daqiqa</span>
+                            </div>
+                        </div>
+
+                        <!-- Payment display -->
+                        <div class="bg-indigo-600/10 border border-indigo-500/20 p-5 rounded-2xl text-center">
+                            <span class="text-xs text-indigo-300 font-semibold uppercase tracking-wider">Jami to'lov miqdori</span>
+                            <div id="checkout-amount-display" class="text-3xl font-extrabold font-title text-indigo-300 mt-2 tabular-nums">0 UZS</div>
+                            <p class="text-[10px] text-indigo-400/80 mt-1">Tarif: <span id="checkout-rate-display">10,000</span> UZS/soat (~166.67 UZS/daqiqa)</p>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="mt-6 flex justify-end gap-3 border-t border-slate-800 pt-4">
+                            <button type="button" onclick="closeCheckOutModal()" class="px-5 py-2.5 rounded-xl border border-slate-700/60 hover:bg-slate-800 font-semibold text-slate-300 text-sm transition">Bekor Qilish</button>
+                            <button onclick="submitCheckOut()" class="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 font-semibold text-white text-sm shadow-lg shadow-rose-600/20 hover:shadow-rose-600/30 transition flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                To'lovni Qabul Qilish (Yakunlash)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: SETTINGS (Tarif Sozlamalari) -->
+    <div id="modal-settings" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Overlay -->
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeSettingsModal()">
+                <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <!-- Modal panel -->
+            <div class="inline-block align-bottom bg-slate-900 border border-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+                <div class="px-6 pt-6 pb-4">
+                    <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                        <h3 class="text-lg font-bold font-title text-slate-100 flex items-center gap-2">
+                            Tarif Sozlamalari
+                        </h3>
+                        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <form id="form-settings" class="mt-4 flex flex-col gap-4" onsubmit="submitSettings(event)">
+                        <!-- Rate Input -->
+                        <div>
+                            <label for="settings-rate" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">1 Soatlik to'lov (UZS)</label>
+                            <div class="relative">
+                                <input type="number" id="settings-rate" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-16 py-3 text-slate-100 text-lg font-semibold tracking-wide focus:outline-none focus:border-indigo-500 transition tabular-nums">
+                                <div class="absolute inset-y-0 right-0 pr-4 flex items-center text-xs font-semibold text-slate-500 pointer-events-none">
+                                    UZS
+                                </div>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-1.5">Standart: 10,000 UZS/soat (~166.67 UZS/daqiqa).</p>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="mt-6 flex justify-end gap-3 border-t border-slate-800 pt-4">
+                            <button type="button" onclick="closeSettingsModal()" class="px-5 py-2.5 rounded-xl border border-slate-700/60 hover:bg-slate-800 font-semibold text-slate-300 text-sm transition">Bekor Qilish</button>
+                            <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-sm shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition">Saqlash</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: DAILY REPORT (Kunlik Hisobot) -->
+    <div id="modal-report" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Overlay -->
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeReportModal()">
+                <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <!-- Modal panel -->
+            <div class="inline-block align-bottom bg-slate-900 border border-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                <div class="px-6 pt-6 pb-6">
+                    <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                        <h3 class="text-lg font-bold font-title text-slate-100 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Kunlik Hisobot (<span id="report-date-display">-</span>)
+                        </h3>
+                        <button onclick="closeReportModal()" class="text-slate-400 hover:text-white transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Summary Stats in Report -->
+                    <div class="grid grid-cols-3 gap-4 mt-4">
+                        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center">
+                            <span class="text-[10px] text-slate-500 font-semibold uppercase">Tugatilgan Sessiyalar</span>
+                            <div id="report-count-completed" class="text-xl font-bold font-title text-slate-100 mt-1 tabular-nums">0</div>
+                        </div>
+                        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center">
+                            <span class="text-[10px] text-slate-500 font-semibold uppercase">Faol Mashinalar</span>
+                            <div id="report-count-active" class="text-xl font-bold font-title text-indigo-400 mt-1 tabular-nums">0</div>
+                        </div>
+                        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center bg-indigo-950/10 border-indigo-900/30">
+                            <span class="text-[10px] text-indigo-300 font-semibold uppercase">Umumiy Tushum</span>
+                            <div id="report-total-revenue" class="text-xl font-extrabold font-title text-indigo-300 mt-1 tabular-nums">0 UZS</div>
+                        </div>
+                    </div>
+
+                    <!-- Table of Transactions -->
+                    <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-6 mb-3">Tugatilgan sessiyalar ro'yxati</h4>
+                    <div class="max-h-60 overflow-y-auto border border-slate-800 rounded-xl bg-slate-950">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-900 text-slate-400 border-b border-slate-800 font-semibold">
+                                    <th class="py-2.5 px-4">Davlat Raqami</th>
+                                    <th class="py-2.5 px-4 text-center">Joy</th>
+                                    <th class="py-2.5 px-4">Kirish vaqti</th>
+                                    <th class="py-2.5 px-4">Chiqish vaqti</th>
+                                    <th class="py-2.5 px-4 text-right">Daqiqa</th>
+                                    <th class="py-2.5 px-4 text-right">To'lov (UZS)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-table-body" class="divide-y divide-slate-900 font-medium">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                        <div id="report-empty-message" class="text-center py-8 text-slate-500 font-medium hidden">
+                            Bugun hali hech qanday sessiya yakunlanmadi.
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end border-t border-slate-800 pt-4">
+                        <button onclick="closeReportModal()" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-slate-200 text-sm transition">Yopish</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Toast Alert Banner -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+        <!-- Toast elements dynamically added here -->
+    </div>
+
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Global State Variables
+        let globalSpots = [];
+        let hourlyRate = {{ hourly_rate }};
+        let activeCheckOutTimer = null;
+
+        // On Load initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchSpots();
+            // Start clock
+            startClock();
+            // Auto refresh spots every 10 seconds
+            setInterval(fetchSpots, 10000);
+        });
+
+        // Live Clock logic
+        function startClock() {
+            const timeEl = document.getElementById('live-time');
+            const dateEl = document.getElementById('live-date');
+            
+            const updateTime = () => {
+                const now = new Date();
+                timeEl.textContent = now.toLocaleTimeString('uz-UZ', { hour12: false });
+                
+                // Pretty date format: e.g. "25-iyun, 2026"
+                const monthsUz = [
+                    'yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun',
+                    'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'
+                ];
+                dateEl.textContent = `${now.getDate()}-${monthsUz[now.getMonth()]}, ${now.getFullYear()}`;
+            };
+            
+            updateTime();
+            setInterval(updateTime, 1000);
+        }
+
+        // Pretty format UZS amounts
+        function formatUZS(amount) {
+            return new Intl.NumberFormat('uz-UZ').format(amount) + " UZS";
+        }
+
+        // Show Toast messages (notification)
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            toast.className = `p-4 rounded-xl border flex items-center justify-between shadow-xl transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto cursor-pointer ${
+                type === 'success' 
+                    ? 'bg-emerald-950/90 border-emerald-500/30 text-emerald-300' 
+                    : 'bg-rose-950/90 border-rose-500/30 text-rose-300'
+            }`;
+            
+            toast.innerHTML = `
+                <div class="flex items-center gap-2.5 text-xs font-semibold">
+                    ${type === 'success' 
+                        ? '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-glow-green"></span>' 
+                        : '<span class="w-2 h-2 rounded-full bg-rose-400 animate-glow-red"></span>'
+                    }
+                    <span>${message}</span>
+                </div>
+                <button class="text-slate-400 hover:text-white ml-3 focus:outline-none">&times;</button>
+            `;
+            
+            // Remove on click
+            toast.addEventListener('click', () => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            });
+            
+            container.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+            }, 10);
+            
+            // Auto remove after 4 seconds
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.classList.add('opacity-0', 'translate-y-2');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 4000);
+        }
+
+        // Fetch all spots and render
+        function fetchSpots() {
+            fetch('/api/spots/')
+                .then(res => res.json())
+                .then(data => {
+                    globalSpots = data.spots;
+                    renderSpots(globalSpots);
+                    updateDashboardStats();
+                })
+                .catch(err => {
+                    console.error("Spots fetch error:", err);
+                    showToast("Ma'lumotlarni yangilashda xatolik yuz berdi.", "error");
+                });
+        }
+
+        // Update dashboard statistics
+        function updateDashboardStats() {
+            const total = globalSpots.length;
+            const occupied = globalSpots.filter(s => s.is_occupied).length;
+            const free = total - occupied;
+            
+            document.getElementById('stat-total-spots').textContent = total;
+            document.getElementById('stat-free-spots').textContent = free;
+            document.getElementById('stat-occupied-spots').textContent = occupied;
+
+            // Fetch today's earnings to keep stats synced
+            fetch('/api/today-report/')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('stat-today-revenue').textContent = formatUZS(data.total_revenue);
+                });
+        }
+
+        // Render spot elements to grid
+        function renderSpots(spots) {
+            const gridA = document.getElementById('grid-section-A');
+            const gridB = document.getElementById('grid-section-B');
+            
+            gridA.innerHTML = '';
+            gridB.innerHTML = '';
+            
+            spots.forEach(spot => {
+                const card = document.createElement('button');
+                
+                // Styling classes based on status
+                if (spot.is_occupied) {
+                    card.className = `flex flex-col items-center justify-between p-4 rounded-xl border transition-all duration-300 text-left relative overflow-hidden bg-rose-950/15 border-rose-500/40 text-rose-300 hover:border-rose-400 hover:bg-rose-950/25 group`;
+                    card.innerHTML = `
+                        <div class="w-full flex items-center justify-between">
+                            <span class="text-sm font-black font-title tracking-wide text-slate-100">${spot.code}</span>
+                            <span class="w-2 h-2 rounded-full bg-rose-500 animate-glow-red"></span>
+                        </div>
+                        <div class="w-full mt-3">
+                            <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Plate</div>
+                            <div class="text-xs font-extrabold tracking-wider text-indigo-300 uppercase">${spot.plate}</div>
+                        </div>
+                    `;
+                    card.onclick = () => openCheckOutModal(spot.session_id);
+                } else {
+                    card.className = `flex flex-col items-center justify-between p-4 rounded-xl border transition-all duration-300 text-left relative overflow-hidden bg-emerald-950/10 border-emerald-500/30 text-emerald-400 hover:border-emerald-400 hover:bg-emerald-950/20 group`;
+                    card.innerHTML = `
+                        <div class="w-full flex items-center justify-between">
+                            <span class="text-sm font-black font-title tracking-wide text-slate-100">${spot.code}</span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-glow-green"></span>
+                        </div>
+                        <div class="w-full mt-3 flex justify-between items-center">
+                            <span class="text-[10px] text-emerald-500/70 font-bold uppercase tracking-wider">Bo'sh</span>
+                            <span class="opacity-0 group-hover:opacity-100 text-xs text-indigo-400 font-semibold transition-opacity flex items-center gap-0.5">
+                                Band qilish 
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </span>
+                        </div>
+                    `;
+                    card.onclick = () => openCheckInModal(spot.code);
+                }
+                
+                // Append to sector A or B
+                if (spot.code.startsWith('A')) {
+                    gridA.appendChild(card);
+                } else if (spot.code.startsWith('B')) {
+                    gridB.appendChild(card);
+                }
+            });
+        }
+
+        // Live search/filtering of spots on user entry
+        function filterSpots() {
+            const query = document.getElementById('search-plate').value.trim().toLowerCase();
+            if (!query) {
+                renderSpots(globalSpots);
+                return;
+            }
+            
+            const filtered = globalSpots.filter(spot => {
+                const matchCode = spot.code.toLowerCase().includes(query);
+                const matchPlate = spot.plate ? spot.plate.toLowerCase().includes(query) : false;
+                return matchCode || matchPlate;
+            });
+            
+            renderSpots(filtered);
+        }
+
+
+        // MODAL LOGIC: CHECK-IN
+        function openCheckInModal(defaultSpotCode = null) {
+            const modal = document.getElementById('modal-checkin');
+            const selectEl = document.getElementById('checkin-spot');
+            const inputEl = document.getElementById('checkin-plate');
+            
+            // Clear input
+            inputEl.value = '';
+            
+            // Build the option elements for FREE spots
+            selectEl.innerHTML = '';
+            
+            // Sort A-Z
+            const freeSpots = globalSpots.filter(s => !s.is_occupied || s.code === defaultSpotCode);
+            freeSpots.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.code;
+                opt.textContent = `${s.code} (Sektor ${s.code[0]})`;
+                if (s.code === defaultSpotCode) {
+                    opt.selected = true;
+                }
+                selectEl.appendChild(opt);
+            });
+            
+            if (freeSpots.length === 0) {
+                showToast("Barcha parking joylari band!", "error");
+                return;
+            }
+            
+            modal.classList.remove('hidden');
+            inputEl.focus();
+        }
+
+        function openCheckInWithDefault() {
+            // Find first free spot
+            const firstFree = globalSpots.find(s => !s.is_occupied);
+            openCheckInModal(firstFree ? firstFree.code : null);
+        }
+
+        function closeCheckInModal() {
+            document.getElementById('modal-checkin').classList.add('hidden');
+        }
+
+        function submitCheckIn(event) {
+            event.preventDefault();
+            const spot_code = document.getElementById('checkin-spot').value;
+            const plate = document.getElementById('checkin-plate').value.trim();
+            
+            if (!plate) {
+                showToast("Davlat raqamini kiriting", "error");
+                return;
+            }
+            
+            fetch('/api/start-session/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ spot_code, plate })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(data.error, "error");
+                } else {
+                    showToast(`${data.plate} mashina ${data.spot_code} joyiga muvaffaqiyatli kiritildi.`);
+                    closeCheckInModal();
+                    fetchSpots();
+                }
+            })
+            .catch(err => {
+                console.error("Check-in error:", err);
+                showToast("Kirishni saqlashda xatolik yuz berdi.", "error");
+            });
+        }
+
+
+        // MODAL LOGIC: CHECK-OUT (Live Ticking Details)
+        function openCheckOutModal(sessionId) {
+            if (!sessionId) return;
+            
+            const modal = document.getElementById('modal-checkout');
+            document.getElementById('checkout-session-id').value = sessionId;
+            
+            // Clear prior text
+            document.getElementById('checkout-spot-display').textContent = '-';
+            document.getElementById('checkout-plate-display').textContent = '-';
+            document.getElementById('checkout-entry-display').textContent = '-';
+            document.getElementById('checkout-duration-display').textContent = '-';
+            document.getElementById('checkout-amount-display').textContent = '-';
+            
+            modal.classList.remove('hidden');
+            
+            // Fetch live session information
+            const updateFeeValues = () => {
+                fetch(`/api/calculate-fee/?session_id=${sessionId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.error) {
+                            showToast(data.error, "error");
+                            closeCheckOutModal();
+                        } else {
+                            document.getElementById('checkout-spot-display').textContent = data.spot_code;
+                            document.getElementById('checkout-plate-display').textContent = data.plate;
+                            
+                            // Pretty dates
+                            const entryDate = new Date(data.entry_time);
+                            const nowDate = new Date(data.current_time);
+                            
+                            document.getElementById('checkout-entry-display').textContent = entryDate.toLocaleString('uz-UZ', { hour12: false });
+                            document.getElementById('checkout-now-display').textContent = nowDate.toLocaleString('uz-UZ', { hour12: false });
+                            
+                            // Duration calculations formatting
+                            const minutes = data.total_minutes;
+                            let durationText = '';
+                            if (minutes >= 60) {
+                                const hrs = Math.floor(minutes / 60);
+                                const mins = Math.round(minutes % 60);
+                                durationText = `${hrs} soat ${mins} daqiqa`;
+                            } else {
+                                durationText = `${Math.ceil(minutes)} daqiqa`;
+                            }
+                            
+                            document.getElementById('checkout-duration-display').textContent = durationText;
+                            document.getElementById('checkout-amount-display').textContent = formatUZS(data.amount);
+                            document.getElementById('checkout-rate-display').textContent = new Intl.NumberFormat('uz-UZ').format(data.hourly_rate);
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Calculate fee error:", err);
+                    });
+            };
+            
+            updateFeeValues();
+            
+            // Start dynamic ticking loop on modal open (every 3 seconds)
+            if (activeCheckOutTimer) clearInterval(activeCheckOutTimer);
+            activeCheckOutTimer = setInterval(updateFeeValues, 3000);
+        }
+
+        function closeCheckOutModal() {
+            document.getElementById('modal-checkout').classList.add('hidden');
+            if (activeCheckOutTimer) {
+                clearInterval(activeCheckOutTimer);
+                activeCheckOutTimer = null;
+            }
+        }
+
+        function submitCheckOut() {
+            const session_id = document.getElementById('checkout-session-id').value;
+            if (!session_id) return;
+            
+            fetch('/api/end-session/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ session_id })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(data.error, "error");
+                } else {
+                    showToast(`${data.plate} uchun to'lov qabul qilindi: ${formatUZS(data.amount)}. Joy bo'shatildi.`);
+                    closeCheckOutModal();
+                    fetchSpots();
+                }
+            })
+            .catch(err => {
+                console.error("Check-out error:", err);
+                showToast("Chiqishni rasmiylashtirishda xatolik yuz berdi.", "error");
+            });
+        }
+
+
+        // MODAL LOGIC: SETTINGS
+        function openSettingsModal() {
+            const modal = document.getElementById('modal-settings');
+            document.getElementById('settings-rate').value = hourlyRate;
+            modal.classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('modal-settings').classList.add('hidden');
+        }
+
+        function submitSettings(event) {
+            event.preventDefault();
+            const rate = document.getElementById('settings-rate').value;
+            
+            fetch('/api/update-rate/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ hourly_rate: rate })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(data.error, "error");
+                } else {
+                    hourlyRate = data.hourly_rate;
+                    document.getElementById('header-rate-display').textContent = new Intl.NumberFormat('uz-UZ').format(hourlyRate);
+                    showToast(`Soatlik tarif muvaffaqiyatli o'zgartirildi: ${formatUZS(hourlyRate)}/soat.`);
+                    closeSettingsModal();
+                    fetchSpots();
+                }
+            })
+            .catch(err => {
+                console.error("Settings update error:", err);
+                showToast("Tarifni saqlashda xatolik yuz berdi.", "error");
+            });
+        }
+
+
+        // MODAL LOGIC: DAILY REPORT
+        function openReportModal() {
+            const modal = document.getElementById('modal-report');
+            
+            // Clear old data
+            document.getElementById('report-date-display').textContent = '-';
+            document.getElementById('report-count-completed').textContent = '0';
+            document.getElementById('report-count-active').textContent = '0';
+            document.getElementById('report-total-revenue').textContent = '0 UZS';
+            
+            const tbody = document.getElementById('report-table-body');
+            tbody.innerHTML = '';
+            
+            // Fetch Report Data
+            fetch('/api/today-report/')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('report-date-display').textContent = data.date;
+                    document.getElementById('report-count-completed').textContent = data.total_cars_completed;
+                    document.getElementById('report-count-active').textContent = data.total_active_cars;
+                    document.getElementById('report-total-revenue').textContent = formatUZS(data.total_revenue);
+                    
+                    if (data.sessions.length === 0) {
+                        document.getElementById('report-empty-message').classList.remove('hidden');
+                    } else {
+                        document.getElementById('report-empty-message').classList.add('hidden');
+                        
+                        data.sessions.forEach(sess => {
+                            const tr = document.createElement('tr');
+                            tr.className = "hover:bg-slate-900 border-b border-slate-900 text-slate-300";
+                            
+                            const inTime = new Date(sess.entry_time).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit', hour12: false });
+                            const outTime = new Date(sess.exit_time).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit', hour12: false });
+                            
+                            tr.innerHTML = `
+                                <td class="py-3 px-4 font-extrabold text-indigo-400 tracking-wider uppercase">${sess.plate}</td>
+                                <td class="py-3 px-4 text-center font-bold text-slate-100">${sess.spot_code}</td>
+                                <td class="py-3 px-4 text-slate-400 tabular-nums">${inTime}</td>
+                                <td class="py-3 px-4 text-slate-400 tabular-nums">${outTime}</td>
+                                <td class="py-3 px-4 text-right tabular-nums">${Math.round(sess.total_minutes)} daq</td>
+                                <td class="py-3 px-4 text-right font-bold text-emerald-400 tabular-nums">${new Intl.NumberFormat('uz-UZ').format(sess.amount)}</td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.error("Report fetch error:", err);
+                    showToast("Hisobot yuklashda xatolik yuz berdi.", "error");
+                });
+                
+            modal.classList.remove('hidden');
+        }
+
+        function closeReportModal() {
+            document.getElementById('modal-report').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
