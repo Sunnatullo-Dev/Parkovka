@@ -6,11 +6,12 @@ from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Sum, Count
 
-from parking.models import ParkingSpot, ParkingSession, ParkingSetting
+from parking.models import ParkingSpot, ParkingSession, ParkingSetting, ParkingSubscription, ParkingShift
 
 # Helpers to get settings
 def get_setting(key, default_val):
@@ -23,27 +24,55 @@ def get_setting(key, default_val):
 def get_all_settings():
     return {
         'hourly_rate': float(get_setting('hourly_rate', '10000')),
-        'free_minutes': float(get_setting('free_minutes', '10')),
-        'min_charge_amount': float(get_setting('min_charge_amount', '5000')),
-        'min_charge_duration': float(get_setting('min_charge_duration', '60')),
+        'free_minutes': float(get_setting('free_minutes', '0')),
+        'min_charge_amount': float(get_setting('min_charge_amount', '0')),
+        'min_charge_duration': float(get_setting('min_charge_duration', '0')),
+        'daily_max_cap': float(get_setting('daily_max_cap', '80000')),
+        'lost_ticket_penalty': float(get_setting('lost_ticket_penalty', '50000')),
     }
+
+def get_active_shift():
+    return ParkingShift.objects.filter(is_active=True).first()
 
 def dashboard_view(request):
     """Renders the main dashboard page."""
     context = get_all_settings()
+    active_shift = get_active_shift()
+    context['active_shift_guard'] = active_shift.guard_name if active_shift else None
     return render(request, 'parking/dashboard.html', context)
 
 @require_http_methods(["GET"])
+@never_cache
 def api_spots(request):
-    """Returns status of all parking spots."""
+    """Returns status of all parking spots, including live earning rate."""
     spots = ParkingSpot.objects.all().order_by('code')
     spots_data = []
     
     # Pre-fetch active sessions to join active plate info with spots
     active_sessions = {s.spot_id: s for s in ParkingSession.objects.filter(is_active=True)}
+    settings = get_all_settings()
+    hourly_rate = settings['hourly_rate']
+    
+    earning_rate_per_minute = 0.0
     
     for spot in spots:
         session = active_sessions.get(spot.id)
+        session_id = None
+        plate = None
+        entry_time = None
+        session_type = None
+        
+        if session:
+            session_id = session.id
+            plate = session.plate
+            entry_time = session.entry_time.isoformat()
+            session_type = session.session_type
+            
+            # Subscribed cars do not generate revenue rate
+            if session_type == 'PAID':
+                multiplier = spot.get_multiplier()
+                earning_rate_per_minute += (hourly_rate * multiplier) / 60.0
+        
         spots_data.append({
             'id': spot.id,
             'code': spot.code,
@@ -51,13 +80,19 @@ def api_spots(request):
             'spot_type': spot.spot_type,
             'spot_type_display': spot.get_spot_type_display(),
             'multiplier': spot.get_multiplier(),
-            'plate': session.plate if session else None,
-            'session_id': session.id if session else None,
-            'entry_time': session.entry_time.isoformat() if session else None
+            'plate': plate,
+            'session_id': session_id,
+            'session_type': session_type,
+            'entry_time': entry_time
         })
-    return JsonResponse({'spots': spots_data})
+        
+    return JsonResponse({
+        'spots': spots_data,
+        'earning_rate_per_minute': round(earning_rate_per_minute, 2)
+    })
 
 @require_http_methods(["GET"])
+@never_cache
 def api_active_sessions(request):
     """Returns list of currently active parking sessions."""
     sessions = ParkingSession.objects.filter(is_active=True).select_related('spot')
@@ -66,6 +101,7 @@ def api_active_sessions(request):
         'spot_code': s.spot.code,
         'spot_type': s.spot.spot_type,
         'plate': s.plate,
+        'session_type': s.session_type,
         'entry_time': s.entry_time.isoformat()
     } for s in sessions]
     return JsonResponse({'sessions': data})
@@ -73,8 +109,13 @@ def api_active_sessions(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_start_session(request):
-    """Starts a new parking session."""
+    """Starts a new parking session, checking for active shifts and monthly subscription."""
     try:
+        # Check active shift
+        shift = get_active_shift()
+        if not shift:
+            return JsonResponse({'error': 'Smena ochilmagan! Iltimos, oldin yangi smena oching.'}, status=400)
+            
         data = json.loads(request.body)
         spot_code = data.get('spot_code')
         plate = data.get('plate', '').strip().upper()
@@ -94,23 +135,35 @@ def api_start_session(request):
             if ParkingSession.objects.filter(plate=plate, is_active=True).exists():
                 return JsonResponse({'error': f"'{plate}' raqamli mashina uchun faol sessiya allaqachon mavjud."}, status=400)
                 
+            # Check subscription
+            try:
+                sub = ParkingSubscription.objects.get(plate=plate, is_active=True, expiry_date__gte=timezone.localdate())
+                session_type = 'SUBSCRIBED'
+                message = f"'{plate}' obunachisi aniqlandi (Abonement)."
+            except ParkingSubscription.DoesNotExist:
+                session_type = 'PAID'
+                message = 'Sessiya muvaffaqiyatli boshlandi.'
+                
             session = ParkingSession.objects.create(
                 spot=spot,
+                shift=shift,
                 plate=plate,
                 entry_time=timezone.now(),
-                is_active=True
+                is_active=True,
+                session_type=session_type
             )
             
             spot.is_occupied = True
             spot.save()
             
             return JsonResponse({
-                'message': 'Sessiya muvaffaqiyatli boshlandi.',
+                'message': message,
                 'session_id': session.id,
                 'spot_code': spot.code,
                 'spot_type': spot.spot_type,
                 'spot_type_display': spot.get_spot_type_display(),
                 'plate': session.plate,
+                'session_type': session.session_type,
                 'entry_time': session.entry_time.isoformat()
             })
             
@@ -118,9 +171,12 @@ def api_start_session(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 @require_http_methods(["GET"])
+@never_cache
 def api_calculate_fee(request):
     """Calculates active session fee in real-time based on advanced tariff rules."""
     session_id = request.GET.get('session_id')
+    is_lost_param = request.GET.get('is_lost_ticket') == 'true'
+    
     if not session_id:
         return JsonResponse({'error': 'Sessiya ID kiritilishi shart.'}, status=400)
         
@@ -136,12 +192,22 @@ def api_calculate_fee(request):
                 'exit_time': session.exit_time.isoformat() if session.exit_time else None
             })
             
+        # Temporarily mock lost ticket if parameter matches
+        orig_lost = session.is_lost_ticket
+        if is_lost_param:
+            session.is_lost_ticket = True
+            
         minutes, amount = session.calculate_fee(
             hourly_rate=settings['hourly_rate'],
             free_minutes=settings['free_minutes'],
             min_charge_amount=settings['min_charge_amount'],
-            min_charge_duration=settings['min_charge_duration']
+            min_charge_duration=settings['min_charge_duration'],
+            daily_max_cap=settings['daily_max_cap'],
+            lost_ticket_penalty=settings['lost_ticket_penalty']
         )
+        
+        # Reset mock
+        session.is_lost_ticket = orig_lost
         
         return JsonResponse({
             'is_active': True,
@@ -150,6 +216,7 @@ def api_calculate_fee(request):
             'spot_type': session.spot.spot_type,
             'spot_type_display': session.spot.get_spot_type_display(),
             'multiplier': session.spot.get_multiplier(),
+            'session_type': session.session_type,
             'entry_time': session.entry_time.isoformat(),
             'current_time': timezone.now().isoformat(),
             'total_minutes': minutes,
@@ -164,8 +231,14 @@ def api_calculate_fee(request):
 def api_end_session(request):
     """Closes an active session, records calculations, and releases the spot."""
     try:
+        # Check active shift
+        shift = get_active_shift()
+        if not shift:
+            return JsonResponse({'error': 'Smena ochilmagan! Iltimos, oldin yangi smena oching.'}, status=400)
+            
         data = json.loads(request.body)
         session_id = data.get('session_id')
+        is_lost_ticket = data.get('is_lost_ticket', False)
         
         if not session_id:
             return JsonResponse({'error': 'Sessiya ID kiritilishi shart.'}, status=400)
@@ -184,15 +257,22 @@ def api_end_session(request):
             
             # Set values
             session.exit_time = exit_time
+            session.is_lost_ticket = is_lost_ticket
+            
             minutes, amount = session.calculate_fee(
                 hourly_rate=settings['hourly_rate'],
                 free_minutes=settings['free_minutes'],
                 min_charge_amount=settings['min_charge_amount'],
-                min_charge_duration=settings['min_charge_duration']
+                min_charge_duration=settings['min_charge_duration'],
+                daily_max_cap=settings['daily_max_cap'],
+                lost_ticket_penalty=settings['lost_ticket_penalty']
             )
+            
             session.total_minutes = minutes
             session.amount = Decimal(str(amount))
             session.is_active = False
+            # Bind to current shift just in case
+            session.shift = shift
             session.save()
             
             # Free the spot
@@ -206,6 +286,8 @@ def api_end_session(request):
                 'spot_code': spot.code,
                 'spot_type': spot.spot_type,
                 'plate': session.plate,
+                'session_type': session.session_type,
+                'is_lost_ticket': session.is_lost_ticket,
                 'entry_time': session.entry_time.isoformat(),
                 'exit_time': session.exit_time.isoformat(),
                 'total_minutes': minutes,
@@ -217,6 +299,7 @@ def api_end_session(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 @require_http_methods(["GET"])
+@never_cache
 def api_today_report(request):
     """Calculates today's report (earnings and count of cars)."""
     now = timezone.now()
@@ -237,6 +320,7 @@ def api_today_report(request):
         'spot_code': s.spot.code,
         'spot_type_display': s.spot.get_spot_type_display(),
         'plate': s.plate,
+        'session_type': s.session_type,
         'entry_time': s.entry_time.isoformat(),
         'exit_time': s.exit_time.isoformat(),
         'total_minutes': s.total_minutes,
@@ -262,7 +346,6 @@ def _get_filtered_history(request):
     if start_date_str:
         try:
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-            # timezone aware
             start_dt = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
             sessions = sessions.filter(exit_time__gte=start_dt)
         except ValueError:
@@ -282,6 +365,7 @@ def _get_filtered_history(request):
     return sessions.order_by('-exit_time')
 
 @require_http_methods(["GET"])
+@never_cache
 def api_history_report(request):
     """Returns historical list of sessions with filters."""
     sessions = _get_filtered_history(request)
@@ -295,11 +379,12 @@ def api_history_report(request):
         'spot_type': s.spot.spot_type,
         'spot_type_display': s.spot.get_spot_type_display(),
         'plate': s.plate,
+        'session_type': s.get_session_type_display(),
         'entry_time': s.entry_time.isoformat(),
         'exit_time': s.exit_time.isoformat(),
         'total_minutes': s.total_minutes,
         'amount': float(s.amount)
-    } for s in sessions[:100]] # Limit to 100 entries for performance, CSV gets all
+    } for s in sessions[:100]]
     
     return JsonResponse({
         'total_count': total_count,
@@ -314,12 +399,10 @@ def api_export_csv(request):
     
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="parking_history.csv"'
-    
-    # Write UTF-8 BOM for Excel compatibility on Windows
     response.write('\ufeff'.encode('utf8'))
     
     writer = csv.writer(response)
-    writer.writerow(['Davlat Raqami', 'Joy Kodi', 'Joy Turi', 'Kirish Vaqti', 'Chiqish Vaqti', 'Turgan Vaqti (Daqiqa)', 'To\'lov Miqdori (UZS)'])
+    writer.writerow(['Davlat Raqami', 'Joy Kodi', 'Joy Turi', 'Tarif turi', 'Kirish Vaqti', 'Chiqish Vaqti', 'Turgan Vaqti (Daqiqa)', 'To\'lov Miqdori (UZS)'])
     
     for s in sessions:
         in_local = timezone.localtime(s.entry_time).strftime('%d.%m.%Y %H:%M:%S')
@@ -328,6 +411,7 @@ def api_export_csv(request):
             s.plate,
             s.spot.code,
             s.spot.get_spot_type_display(),
+            s.get_session_type_display(),
             in_local,
             out_local,
             round(s.total_minutes or 0, 1),
@@ -337,6 +421,7 @@ def api_export_csv(request):
     return response
 
 @require_http_methods(["GET"])
+@never_cache
 def api_analytics_data(request):
     """Returns analytics data (earnings last 7 days and hourly traffic breakdown)."""
     now = timezone.now()
@@ -355,15 +440,12 @@ def api_analytics_data(request):
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
         
         earnings_trend.append({
-            'label': day.strftime('%d-%b'), # e.g. "25-Jun"
+            'label': day.strftime('%d-%b'),
             'value': float(revenue)
         })
         
     # 2. Hourly Check-in Distribution
-    # Group check-ins by hour (0 to 23)
     hourly_distribution = [0] * 24
-    
-    # Analyze sessions from past 30 days for rich distribution data
     thirty_days_ago = local_now - timedelta(days=30)
     sessions = ParkingSession.objects.filter(entry_time__gte=thirty_days_ago)
     
@@ -372,7 +454,6 @@ def api_analytics_data(request):
         hour = local_entry.hour
         hourly_distribution[hour] += 1
         
-    # Convert hourly data to label/value format
     hourly_data = [{
         'label': f"{h:02d}:00",
         'value': hourly_distribution[h]
@@ -389,8 +470,7 @@ def api_update_rate(request):
     """Updates the parking settings parameters."""
     try:
         data = json.loads(request.body)
-        
-        keys = ['hourly_rate', 'free_minutes', 'min_charge_amount', 'min_charge_duration']
+        keys = ['hourly_rate', 'free_minutes', 'min_charge_amount', 'min_charge_duration', 'daily_max_cap', 'lost_ticket_penalty']
         response_data = {}
         
         for key in keys:
@@ -414,3 +494,160 @@ def api_update_rate(request):
         })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+# ==================== NEW SHIFT MANAGER APIs ====================
+
+@require_http_methods(["GET", "POST"])
+@csrf_exempt
+@never_cache
+def api_active_shift(request):
+    """Manages active shift. GET returns current shift state. POST opens new shift."""
+    if request.method == "GET":
+        shift = get_active_shift()
+        if not shift:
+            return JsonResponse({'active': False})
+            
+        # Aggregate stats
+        sessions = ParkingSession.objects.filter(shift=shift, is_active=False)
+        total_revenue = sessions.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        count_completed = sessions.count()
+        count_active = ParkingSession.objects.filter(shift=shift, is_active=True).count()
+        
+        return JsonResponse({
+            'active': True,
+            'shift_id': shift.id,
+            'guard_name': shift.guard_name,
+            'start_time': shift.start_time.isoformat(),
+            'total_revenue': float(total_revenue),
+            'count_completed': count_completed,
+            'count_active': count_active
+        })
+    elif request.method == "POST":
+        active = get_active_shift()
+        if active:
+            return JsonResponse({'error': 'Faol smena allaqachon ochilgan. Avval uni yoping.'}, status=400)
+            
+        try:
+            data = json.loads(request.body)
+            guard_name = data.get('guard_name', '').strip()
+            if not guard_name:
+                return JsonResponse({'error': 'Qorovul ismi kiritilishi shart.'}, status=400)
+                
+            shift = ParkingShift.objects.create(
+                guard_name=guard_name,
+                start_time=timezone.now(),
+                is_active=True
+            )
+            return JsonResponse({
+                'message': f"Smena muvaffaqiyatli ochildi. Operator: {shift.guard_name}",
+                'shift_id': shift.id,
+                'guard_name': shift.guard_name,
+                'start_time': shift.start_time.isoformat()
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_close_shift(request):
+    """Closes the current active cashier shift and returns closeout metrics."""
+    shift = get_active_shift()
+    if not shift:
+        return JsonResponse({'error': 'Faol smena topilmadi.'}, status=400)
+        
+    try:
+        with transaction.atomic():
+            # Close active sessions linked to this shift
+            active_sessions = ParkingSession.objects.filter(shift=shift, is_active=True)
+            active_count = active_sessions.count()
+            
+            # Close shift
+            shift.is_active = False
+            shift.end_time = timezone.now()
+            shift.save()
+            
+            # Calculate shift statistics
+            sessions_closed = ParkingSession.objects.filter(shift=shift, is_active=False)
+            total_revenue = sessions_closed.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            count_completed = sessions_closed.count()
+            count_standard = sessions_closed.filter(session_type='PAID').count()
+            count_subscribed = sessions_closed.filter(session_type='SUBSCRIBED').count()
+            count_lost_ticket = sessions_closed.filter(is_lost_ticket=True).count()
+            
+            return JsonResponse({
+                'message': 'Smena muvaffaqiyatli yakunlandi.',
+                'shift_id': shift.id,
+                'guard_name': shift.guard_name,
+                'start_time': shift.start_time.isoformat(),
+                'end_time': shift.end_time.isoformat(),
+                'total_revenue': float(total_revenue),
+                'count_completed': count_completed,
+                'count_standard': count_standard,
+                'count_subscribed': count_subscribed,
+                'count_lost_ticket': count_lost_ticket,
+                'remaining_active_cars_orphaned': active_count
+            })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ==================== NEW SUBSCRIPTION APIs ====================
+
+@require_http_methods(["GET", "POST"])
+@csrf_exempt
+@never_cache
+def api_subscriptions(request):
+    """GET returns subscribers list. POST adds/renews a monthly subscription."""
+    if request.method == "GET":
+        subs = ParkingSubscription.objects.all().order_by('-expiry_date')
+        data = [{
+            'id': s.id,
+            'plate': s.plate,
+            'owner_name': s.owner_name,
+            'expiry_date': s.expiry_date.isoformat(),
+            'is_valid': s.is_valid()
+        } for s in subs]
+        return JsonResponse({'subscriptions': data})
+        
+    elif request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            plate = data.get('plate', '').strip().upper()
+            owner_name = data.get('owner_name', '').strip()
+            expiry_str = data.get('expiry_date', '').strip()
+            
+            if not plate or not owner_name or not expiry_str:
+                return JsonResponse({'error': 'Barcha maydonlarni to\'ldirish shart.'}, status=400)
+                
+            try:
+                expiry_date = datetime.strptime(expiry_str, '%Y-%m-%d').date()
+            except ValueError:
+                return JsonResponse({'error': 'Sana formati noto\'g\'ri (YYYY-MM-DD).'}, status=400)
+                
+            sub, created = ParkingSubscription.objects.get_or_create(
+                plate=plate,
+                defaults={
+                    'owner_name': owner_name,
+                    'expiry_date': expiry_date,
+                    'is_active': True
+                }
+            )
+            
+            if not created:
+                sub.owner_name = owner_name
+                sub.expiry_date = expiry_date
+                sub.is_active = True
+                sub.save()
+                message = "Abonement muddati muvaffaqiyatli uzaytirildi."
+            else:
+                message = "Yangi abonement muvaffaqiyatli qo'shildi."
+                
+            return JsonResponse({
+                'message': message,
+                'id': sub.id,
+                'plate': sub.plate,
+                'owner_name': sub.owner_name,
+                'expiry_date': sub.expiry_date.isoformat(),
+                'is_valid': sub.is_valid()
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

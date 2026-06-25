@@ -1,8 +1,10 @@
 from django.core.management.base import BaseCommand
-from parking.models import ParkingSpot, ParkingSetting
+from django.utils import timezone
+from datetime import timedelta
+from parking.models import ParkingSpot, ParkingSetting, ParkingSubscription
 
 class Command(BaseCommand):
-    help = 'Initializes default parking spots (A1-A10, B1-B10) with VIP/Disabled types and default settings'
+    help = 'Initializes default parking spots, subscriptions, and advanced commercial settings'
 
     def handle(self, *args, **options):
         # 1. Initialize settings
@@ -14,18 +16,28 @@ class Command(BaseCommand):
             },
             {
                 'key': 'free_minutes',
-                'value': '10',
-                'description': 'Number of initial minutes that are free of charge'
+                'value': '0',
+                'description': 'Number of initial minutes that are free of charge (0 = bill immediately)'
             },
             {
                 'key': 'min_charge_amount',
-                'value': '5000',
-                'description': 'Minimum charge amount in UZS'
+                'value': '0',
+                'description': 'Minimum charge amount in UZS (0 = minute billing)'
             },
             {
                 'key': 'min_charge_duration',
-                'value': '60',
+                'value': '0',
                 'description': 'Minimum charge duration in minutes'
+            },
+            {
+                'key': 'daily_max_cap',
+                'value': '80000',
+                'description': 'Maximum parking charge amount per 24 hours in UZS'
+            },
+            {
+                'key': 'lost_ticket_penalty',
+                'value': '50000',
+                'description': 'Flat rate penalty fee for losing check-in ticket in UZS'
             }
         ]
 
@@ -37,17 +49,14 @@ class Command(BaseCommand):
                     'description': setting_data['description']
                 }
             )
-            if created:
-                self.stdout.write(self.style.SUCCESS(f"Default setting '{setting_data['key']}' created with value '{setting_data['value']}'."))
-            else:
-                # Keep existing values but update description if needed
+            # Update to make sure it matches seeding defaults (especially free_minutes=0)
+            if not created:
+                setting.value = setting_data['value']
                 setting.description = setting_data['description']
                 setting.save()
+            self.stdout.write(self.style.SUCCESS(f"Setting '{setting_data['key']}' initialized to '{setting_data['value']}'."))
 
         # 2. Initialize spots
-        # VIP spots: A9, A10, B9, B10
-        # Disabled spots: A1, B1
-        # Standard: others
         vip_spots = {'A9', 'A10', 'B9', 'B10'}
         disabled_spots = {'A1', 'B1'}
 
@@ -74,17 +83,44 @@ class Command(BaseCommand):
                 if created:
                     spots_created_count += 1
                 else:
-                    # Update spot_type to match configuration
                     if spot.spot_type != spot_type:
                         spot.spot_type = spot_type
                         spot.save()
                         spots_updated_count += 1
 
         if spots_created_count > 0:
-            self.stdout.write(self.style.SUCCESS(f"Successfully created {spots_created_count} parking spots."))
+            self.stdout.write(self.style.SUCCESS(f"Created {spots_created_count} parking spots."))
         if spots_updated_count > 0:
-            self.stdout.write(self.style.SUCCESS(f"Successfully updated {spots_updated_count} parking spots to correct types."))
-        if spots_created_count == 0 and spots_updated_count == 0:
-            self.stdout.write(self.style.WARNING("All parking spots already exist and are set up correctly."))
+            self.stdout.write(self.style.SUCCESS(f"Updated {spots_updated_count} parking spots to VIP/Disabled/Standard types."))
+
+        # 3. Seed active subscribers (monthly abonement)
+        subscribers_to_seed = [
+            {
+                'plate': '01A777AA',
+                'owner_name': 'Samandarov Sunnatulla',
+                'expiry_days': 30
+            },
+            {
+                'plate': '01777AAA',
+                'owner_name': 'Lazizbekov Shaxzod',
+                'expiry_days': 30
+            }
+        ]
+
+        for sub_data in subscribers_to_seed:
+            sub, created = ParkingSubscription.objects.get_or_create(
+                plate=sub_data['plate'],
+                defaults={
+                    'owner_name': sub_data['owner_name'],
+                    'expiry_date': timezone.localdate() + timedelta(days=sub_data['expiry_days']),
+                    'is_active': True
+                }
+            )
+            if created:
+                self.stdout.write(self.style.SUCCESS(f"Subscription seeded for {sub_data['plate']} ({sub_data['owner_name']})."))
+            else:
+                sub.expiry_date = timezone.localdate() + timedelta(days=sub_data['expiry_days'])
+                sub.is_active = True
+                sub.save()
         
         self.stdout.write(self.style.SUCCESS("Database seeding completed successfully."))

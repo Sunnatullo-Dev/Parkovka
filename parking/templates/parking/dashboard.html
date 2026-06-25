@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parkovka — Smart Parking Control Panel</title>
-    <!-- Google Fonts: Inter & Outfit -->
+    <!-- Google Fonts: Inter, Outfit, Fira Code -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
@@ -29,8 +29,8 @@
             font-family: 'Inter', sans-serif;
             background-color: #0f172a; /* Slate 900 */
             background-image: 
-                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.05) 0px, transparent 50%);
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.04) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.04) 0px, transparent 50%);
         }
         .font-title {
             font-family: 'Outfit', sans-serif;
@@ -53,55 +53,41 @@
         
         /* Glow animation for status dots & spot types */
         @keyframes pulse-glow {
-            0%, 100% {
-                transform: scale(1);
-                opacity: 0.6;
-            }
-            50% {
-                transform: scale(1.2);
-                opacity: 1;
-            }
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.2); opacity: 1; }
         }
-        .animate-glow-green {
-            box-shadow: 0 0 8px #10b981;
-            animation: pulse-glow 2s infinite ease-in-out;
-        }
-        .animate-glow-red {
-            box-shadow: 0 0 8px #f43f5e;
-            animation: pulse-glow 2s infinite ease-in-out;
-        }
-        .animate-glow-gold {
-            box-shadow: 0 0 10px #eab308;
-            animation: pulse-glow 2s infinite ease-in-out;
-        }
-        .animate-glow-cyan {
-            box-shadow: 0 0 8px #06b6d4;
-            animation: pulse-glow 2s infinite ease-in-out;
-        }
+        .animate-glow-green { box-shadow: 0 0 8px #10b981; animation: pulse-glow 2s infinite ease-in-out; }
+        .animate-glow-red { box-shadow: 0 0 8px #f43f5e; animation: pulse-glow 2s infinite ease-in-out; }
+        .animate-glow-gold { box-shadow: 0 0 10px #eab308; animation: pulse-glow 2s infinite ease-in-out; }
+        .animate-glow-cyan { box-shadow: 0 0 8px #06b6d4; animation: pulse-glow 2s infinite ease-in-out; }
+        .animate-glow-purple { box-shadow: 0 0 8px #a855f7; animation: pulse-glow 2s infinite ease-in-out; }
 
         /* SVG Car entrance animation */
         @keyframes car-slide-in {
-            0% {
-                transform: translateY(12px) scale(0.9);
-                opacity: 0;
-            }
-            100% {
-                transform: translateY(0) scale(1);
-                opacity: 1;
-            }
+            0% { transform: translateY(12px) scale(0.9); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
         }
         .animate-car {
             animation: car-slide-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
+        /* 3D Isometric grid perspective */
+        .grid-isometric {
+            perspective: 1200px;
+        }
+        .grid-isometric-inner {
+            transform: rotateX(24deg) rotateY(-10deg) rotateZ(3deg);
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .grid-isometric-inner:hover {
+            transform: rotateX(20deg) rotateY(-5deg) rotateZ(2deg);
+        }
+
         /* Print styling for receipts */
         @media print {
-            body * {
-                visibility: hidden;
-            }
-            #print-receipt-section, #print-receipt-section * {
-                visibility: visible;
-            }
+            body * { visibility: hidden; }
+            #print-receipt-section, #print-receipt-section * { visibility: visible; }
             #print-receipt-section {
                 position: absolute;
                 left: 0;
@@ -112,16 +98,33 @@
                 color: #000 !important;
                 background: #fff !important;
             }
-            .no-print {
-                display: none !important;
-            }
+            .no-print { display: none !important; }
         }
     </style>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white antialiased">
 
+    <!-- SHIFT OVERLAY (Blurred login) -->
+    <div id="shift-overlay" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-4 {% if active_shift_guard %}hidden{% endif %} no-print">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col gap-5 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/20">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                </svg>
+            </div>
+            <div>
+                <h2 class="text-xl font-bold font-title text-slate-100">Kassani Boshlash</h2>
+                <p class="text-xs text-slate-400 mt-1">Smena ochish uchun operator ismini kiriting</p>
+            </div>
+            <form onsubmit="submitOpenShift(event)" class="flex flex-col gap-3">
+                <input type="text" id="shift-guard-name" placeholder="Ism familiyangiz..." required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition">
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-sm shadow-lg shadow-indigo-600/20 transition-all">Smenani Ochish</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Top Navigation Bar -->
-    <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30 px-6 py-4 no-print">
+    <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-30 px-6 py-4 no-print">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <!-- Brand / Logo -->
             <div class="flex items-center gap-3">
@@ -132,128 +135,144 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold font-title bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent tracking-tight">PARKOVKA</h1>
-                    <p class="text-xs text-slate-400 font-medium">Aqlli boshqaruv tizimi</p>
+                    <p class="text-xs text-slate-400 font-medium">Operator: <span id="header-guard-name" class="font-semibold text-slate-200">{{ active_shift_guard|default:"-" }}</span></p>
                 </div>
             </div>
 
-            <!-- Real-time Clock & Status -->
-            <div class="flex items-center gap-4">
+            <!-- Header widgets -->
+            <div class="flex items-center gap-3">
                 <!-- Clock -->
-                <div class="text-right hidden sm:block mr-2">
+                <div class="text-right hidden sm:block mr-3">
                     <div id="live-time" class="text-lg font-semibold font-title tabular-nums text-indigo-400">12:00:00</div>
                     <div id="live-date" class="text-xs text-slate-400 font-medium">25-iyun, 2026</div>
                 </div>
 
                 <!-- Rate config summary trigger -->
-                <div class="flex items-center gap-3.5 bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-2 hover:border-indigo-500/50 transition cursor-pointer" onclick="openSettingsModal()">
+                <div class="flex items-center gap-3.5 bg-slate-800/80 border border-slate-700/60 rounded-xl px-4 py-2 hover:border-indigo-500/50 transition cursor-pointer" onclick="openSettingsModal()">
                     <div class="flex flex-col">
                         <div class="text-[9px] text-slate-400 font-bold uppercase leading-none">Tarif Sozlamalari</div>
                         <div class="text-xs font-bold text-slate-200 mt-0.5"><span id="header-rate-display" class="tabular-nums">{{ hourly_rate|floatformat:0 }}</span> so'm/soat</div>
-                        <div class="text-[9px] text-indigo-400 font-medium leading-none mt-0.5">Dastlabki <span id="header-free-display">{{ free_minutes|floatformat:0 }}</span> daqiqa bepul</div>
+                        <div class="text-[9px] text-indigo-400 font-medium leading-none mt-0.5">1 daqiqa ≈ <span id="header-minute-display" class="tabular-nums">166.7</span> so'm</div>
                     </div>
-                    <svg class="w-4 h-4 text-slate-400 ml-1 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
                 </div>
+
+                <!-- Logout / Shift Close -->
+                <button onclick="triggerCloseShift()" class="bg-rose-950/20 hover:bg-rose-900/30 text-rose-400 hover:text-rose-300 border border-rose-900/30 rounded-xl p-2.5 transition" title="Smenani Yakunlash">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </header>
 
     <!-- Main Content Grid -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-6 py-8 flex flex-col gap-8 no-print">
+    <main class="flex-grow max-w-7xl w-full mx-auto px-6 py-8 flex flex-col gap-6 no-print">
         
-        <!-- Summary Cards Grid (Glassmorphism layout) -->
-        <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Total Spots -->
-            <div class="bg-slate-900/40 backdrop-blur-md border border-slate-800/80 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
-                <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Jami Joylar</p>
-                <h3 id="stat-total-spots" class="text-3xl font-bold font-title mt-2 text-slate-100 tabular-nums">0</h3>
-            </div>
-            
+        <!-- Stats summary panel -->
+        <section class="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <!-- Free Spots -->
-            <div class="bg-slate-900/40 backdrop-blur-md border border-slate-800/80 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
-                <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Bo'sh Joylar</p>
-                <h3 id="stat-free-spots" class="text-3xl font-bold font-title mt-2 text-emerald-400 tabular-nums">0</h3>
+            <div class="bg-slate-900/40 backdrop-blur-md border border-slate-800/80 rounded-2xl p-4">
+                <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Bo'sh Joylar</p>
+                <h3 id="stat-free-spots" class="text-2xl font-bold font-title mt-1.5 text-emerald-400 tabular-nums">0</h3>
             </div>
 
             <!-- Occupied Spots -->
-            <div class="bg-slate-900/40 backdrop-blur-md border border-slate-800/80 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
-                <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Band Joylar</p>
-                <h3 id="stat-occupied-spots" class="text-3xl font-bold font-title mt-2 text-rose-400 tabular-nums">0</h3>
+            <div class="bg-slate-900/40 backdrop-blur-md border border-slate-800/80 rounded-2xl p-4">
+                <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Band Joylar</p>
+                <h3 id="stat-occupied-spots" class="text-2xl font-bold font-title mt-1.5 text-rose-400 tabular-nums">0</h3>
             </div>
 
             <!-- Today's Earnings -->
-            <div class="bg-indigo-950/20 backdrop-blur-md border border-indigo-900/30 rounded-2xl p-5 relative overflow-hidden group hover:border-indigo-800/40 transition-all duration-300">
+            <div class="bg-slate-900/40 backdrop-blur-md border border-slate-800/80 rounded-2xl p-4">
+                <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider font-title">Smena tushumi</p>
+                <h3 id="stat-shift-revenue" class="text-2xl font-bold font-title mt-1.5 text-indigo-300 tabular-nums">0 so'm</h3>
+            </div>
+
+            <!-- Earning Rate per minute (Live Ticker) -->
+            <div class="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-4 relative overflow-hidden">
                 <div class="flex items-center justify-between">
-                    <p class="text-xs text-indigo-300 font-semibold uppercase tracking-wider">Bugungi Tushum</p>
-                    <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-semibold border border-indigo-500/30">BUGUN</span>
+                    <p class="text-[10px] text-indigo-400 font-semibold uppercase tracking-wider">Daromad tezligi</p>
+                    <span class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-ping"></span>
                 </div>
-                <h3 id="stat-today-revenue" class="text-3xl font-bold font-title mt-2 text-indigo-300 tabular-nums">0 so'm</h3>
+                <h3 id="stat-earning-rate" class="text-2xl font-bold font-title mt-1.5 text-indigo-300 tabular-nums">0 so'm / daq</h3>
+                <p class="text-[8px] text-slate-500 font-medium leading-none mt-1">Hozirgi band joylardan tushum tezligi</p>
+            </div>
+
+            <!-- Autopilot traffic control panel -->
+            <div id="card-autopilot" class="col-span-2 lg:col-span-1 bg-slate-950/40 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between hover:border-violet-500/25 transition">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Avto-Trafik (Pilot)</span>
+                    <span id="autopilot-pulse" class="w-2.5 h-2.5 rounded-full bg-slate-700"></span>
+                </div>
+                <button onclick="toggleAutopilot()" id="btn-autopilot" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700/60 rounded-lg py-1.5 text-xs text-slate-300 font-bold transition flex items-center justify-center gap-1.5">
+                    Simulyatsiyani yoqish
+                </button>
             </div>
         </section>
 
-        <!-- Quick actions & Search bar -->
-        <section class="flex flex-col lg:flex-row items-center justify-between gap-4 bg-slate-900/30 backdrop-blur-md border border-slate-800/80 rounded-2xl p-4">
-            
-            <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-                <!-- Search field -->
+        <!-- Search, Barcode scanners & Actions -->
+        <section class="flex flex-col xl:flex-row items-center justify-between gap-4 bg-slate-900/30 backdrop-blur-md border border-slate-800/80 rounded-2xl p-4">
+            <div class="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+                <!-- Search -->
                 <div class="relative w-full sm:w-80">
                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
                     </span>
-                    <input type="text" id="search-plate" oninput="filterSpots()" placeholder="Raqam yoki joy kodi orqali qidirish..." class="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                    <input type="text" id="search-plate" oninput="filterSpots()" placeholder="Raqam yoki joy kodi orqali qidirish..." class="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
                 </div>
 
-                <!-- Simulates physical scanning (Barcode Scanner input) -->
+                <!-- Barcode Scan simulation -->
                 <div class="relative w-full sm:w-60">
                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <!-- Barcode icon -->
                         <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5h2v14H3V5zm4 0h1v14H7V5zm3 0h3v14h-3V5zm5 0h1v14h-1V5zm3 0h2v14h-2V5z"/>
                         </svg>
                     </span>
-                    <input type="text" id="barcode-scanner-input" oninput="simulateBarcodeScan(this.value)" placeholder="Shtrix-kod skanerlash (#PK-...)" class="w-full bg-slate-950/80 border border-indigo-950 rounded-xl pl-9 pr-4 py-2 text-xs text-indigo-300 placeholder-indigo-900/60 focus:outline-none focus:border-indigo-500 transition-colors tracking-wide font-mono">
+                    <input type="text" id="barcode-scanner-input" oninput="simulateBarcodeScan(this.value)" placeholder="Shtrix-kod skanerlash (#PK-...)" class="w-full bg-slate-950/80 border border-indigo-950 rounded-xl pl-9 pr-4 py-2 text-xs text-indigo-300 placeholder-indigo-900/60 focus:outline-none focus:border-indigo-500 transition tracking-wide font-mono">
                 </div>
             </div>
 
-            <!-- Buttons -->
-            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
-                <!-- LPR Simulator button -->
-                <button onclick="triggerLPRSimulator()" class="w-full sm:w-auto bg-gradient-to-r from-violet-600/30 to-indigo-600/30 hover:from-violet-600/50 hover:to-indigo-600/50 text-indigo-200 border border-indigo-500/30 px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all">
-                    <!-- Camera LPR icon -->
+            <!-- Action buttons -->
+            <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-end">
+                <button onclick="triggerLPRSimulator()" class="w-full sm:w-auto bg-gradient-to-r from-violet-600/30 to-indigo-600/30 hover:from-violet-600/50 hover:to-indigo-600/50 text-indigo-200 border border-indigo-500/30 px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all">
                     <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 00-2 2z"/>
                     </svg>
-                    LPR Kamera (Raqamni aniqlash)
+                    LPR Kamera
                 </button>
-                
-                <button onclick="toggleAnalyticsDrawer()" class="w-full sm:w-auto bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white px-4 py-2 rounded-xl font-medium text-xs flex items-center justify-center gap-2 border border-slate-700/60 transition-all">
+                <button onclick="openSubscriptionsModal()" class="w-full sm:w-auto bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white px-4 py-2 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 border border-slate-700/60 transition-all">
                     <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Abonementlar
+                </button>
+                <button onclick="toggleAnalyticsDrawer()" class="w-full sm:w-auto bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white px-4 py-2 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 border border-slate-700/60 transition-all">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.003 9.003 0 1020.945 13H11V3.055z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
                     </svg>
                     Tahlillar
                 </button>
-                <button onclick="openHistoryReportModal()" class="w-full sm:w-auto bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white px-4 py-2 rounded-xl font-medium text-xs flex items-center justify-center gap-2 border border-slate-700/60 transition-all">
+                <button onclick="openHistoryReportModal()" class="w-full sm:w-auto bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white px-4 py-2 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 border border-slate-700/60 transition-all">
                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                     </svg>
-                    Arxiv / Eksport
+                    Arxiv
                 </button>
-                <button onclick="openCheckInWithDefault()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition-all">
+                <button onclick="openCheckInWithDefault()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
-                    Kirishni qayd etish
+                    Kirish
                 </button>
             </div>
         </section>
 
-        <!-- ANALYTICS PANEL DRAWER -->
-        <section id="analytics-drawer" class="hidden bg-slate-900/30 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6 transition-all duration-500">
+        <!-- COLLAPSIBLE ANALYTICS DRAWER -->
+        <section id="analytics-drawer" class="hidden bg-slate-900/30 border border-slate-800 rounded-2xl p-6">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-6">
                 <h3 class="font-bold font-title text-slate-200 flex items-center gap-2">
                     <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,76 +287,71 @@
                 <!-- Chart 1: Earnings -->
                 <div class="bg-slate-950/40 p-4 rounded-xl border border-slate-800">
                     <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Oxirgi 7 kunlik tushum tahlili (so'm)</h4>
-                    <div id="chart-earnings-container" class="h-48 flex items-end justify-between gap-3 pt-6 px-4 pb-2">
-                        <!-- Loaded dynamically -->
-                    </div>
+                    <div id="chart-earnings-container" class="h-48 flex items-end justify-between gap-3 pt-6 px-4 pb-2"></div>
                 </div>
 
                 <!-- Chart 2: Traffic -->
                 <div class="bg-slate-950/40 p-4 rounded-xl border border-slate-800">
                     <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Kuning soatlar bo'yicha kirish trafigi (oxirgi 30 kun)</h4>
-                    <div id="chart-traffic-container" class="h-48 flex items-end justify-between gap-1 pt-6 px-4 pb-2 overflow-x-auto">
-                        <!-- Loaded dynamically -->
-                    </div>
+                    <div id="chart-traffic-container" class="h-48 flex items-end justify-between gap-1 pt-6 px-4 pb-2 overflow-x-auto"></div>
                 </div>
             </div>
         </section>
 
-        <!-- Parking Spots Layout Map -->
+        <!-- Parking Grid Layout Area (with 3D toggle) -->
         <section class="flex flex-col gap-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-2">
-                <h2 class="text-lg font-bold font-title tracking-tight text-slate-200">Parking Joylari Xaritasi</h2>
-                <!-- Map Legend -->
-                <div class="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-400">
-                    <div class="flex items-center gap-1.5">
-                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-glow-green"></span>
-                        <span>Standard (1.0x)</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-glow-gold"></span>
-                        <span class="text-yellow-400">VIP (2.0x)</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-glow-cyan"></span>
-                        <span class="text-cyan-400">Nogironlar (Free)</span>
-                    </div>
+                <div class="flex items-center gap-4">
+                    <h2 class="text-lg font-bold font-title tracking-tight text-slate-200">Parking Joylari Xaritasi</h2>
+                    <!-- 3D Isometric View Toggle -->
+                    <button onclick="togglePerspectiveView()" id="btn-isometric" class="bg-slate-950/80 border border-slate-800 px-3 py-1 rounded-lg text-[10px] font-bold text-slate-400 hover:text-white transition flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        3D Ko'rinish
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-400">
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-glow-green"></span><span>Standard (1.0x)</span></div>
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-glow-gold"></span><span class="text-yellow-400">VIP (2.0x)</span></div>
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-glow-cyan"></span><span class="text-cyan-400">Nogironlar (0x / Bepul)</span></div>
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-glow-purple"></span><span class="text-purple-400">Rezerv (1.5x)</span></div>
                 </div>
             </div>
 
-            <!-- Map sections container -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Section A -->
-                <div class="bg-slate-900/30 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6">
-                    <h3 class="text-sm font-bold font-title uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
-                        <span>A Sektor (Kassa yaqinida)</span>
-                    </h3>
-                    <div id="grid-section-A" class="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                        <!-- Loaded dynamically -->
+            <!-- Outer wrapper for perspective -->
+            <div id="grid-3d-wrapper" class="w-full">
+                <!-- Inner grid container -->
+                <div id="grid-3d-inner" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Section A -->
+                    <div class="bg-slate-900/30 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6">
+                        <h3 class="text-sm font-bold font-title uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
+                            <span>A Sektor (Kassa yaqinida)</span>
+                        </h3>
+                        <div id="grid-section-A" class="grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
                     </div>
-                </div>
 
-                <!-- Section B -->
-                <div class="bg-slate-900/30 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6">
-                    <h3 class="text-sm font-bold font-title uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
-                        <span>B Sektor (Chiqish yaqinida)</span>
-                    </h3>
-                    <div id="grid-section-B" class="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                        <!-- Loaded dynamically -->
+                    <!-- Section B -->
+                    <div class="bg-slate-900/30 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6">
+                        <h3 class="text-sm font-bold font-title uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
+                            <span>B Sektor (Chiqish yaqinida)</span>
+                        </h3>
+                        <div id="grid-section-B" class="grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
                     </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Page Footer -->
-    <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 bg-slate-950 mt-auto no-print">
-        <p>© 2026 Parkovka - Smart Parking Control. Barcha huquqlar himoyalangan.</p>
-    </footer>
+    <!-- Sidebar Live Event Notification Logger -->
+    <div id="event-feed-container" class="fixed top-24 right-6 w-80 max-h-[400px] flex flex-col gap-2 z-20 pointer-events-none no-print">
+        <!-- Live status notification updates -->
+    </div>
 
     <!-- MODAL 1: CHECK-IN (Kirish) -->
     <div id="modal-checkin" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <!-- Overlay -->
             <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeCheckInModal()">
                 <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"></div>
             </div>
@@ -350,36 +364,26 @@
                             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-glow-green"></span>
                             Kirishni Qayd Etish
                         </h3>
-                        <button onclick="closeCheckInModal()" class="text-slate-400 hover:text-white transition-colors">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
+                        <button onclick="closeCheckInModal()" class="text-slate-400 hover:text-white transition-colors">&times;</button>
                     </div>
 
                     <form id="form-checkin" class="mt-4 flex flex-col gap-4" onsubmit="submitCheckIn(event)">
-                        <!-- Selected Spot -->
                         <div>
                             <label for="checkin-spot" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Parking Joyi</label>
-                            <select id="checkin-spot" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-indigo-500 transition">
-                                <!-- Loaded dynamically -->
-                            </select>
+                            <select id="checkin-spot" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-indigo-500 transition"></select>
                         </div>
 
-                        <!-- License Plate (with auto Uzbek plate formatting) -->
                         <div>
                             <label for="checkin-plate" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Davlat Raqami</label>
                             <div class="relative">
                                 <input type="text" id="checkin-plate" oninput="handlePlateInput(this)" placeholder="Masalan: 01 A 123 BC" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition text-lg tracking-wider font-semibold uppercase">
                                 <span class="absolute inset-y-0 right-3 flex items-center text-[10px] text-slate-500 font-bold pointer-events-none uppercase">UZB</span>
                             </div>
-                            <p class="text-[10px] text-slate-500 mt-1">Avtomatik formatlanadi: 01 | A 123 BC yoki 01 | 123 AAA</p>
                         </div>
 
-                        <!-- Submit Buttons -->
                         <div class="mt-6 flex justify-end gap-3 border-t border-slate-800 pt-4">
                             <button type="button" onclick="closeCheckInModal()" class="px-5 py-2.5 rounded-xl border border-slate-700/60 hover:bg-slate-800 font-semibold text-slate-300 text-sm transition">Bekor Qilish</button>
-                            <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-sm shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition">Kirishni Saqlash</button>
+                            <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-sm shadow-lg shadow-indigo-600/20 transition">Kirishni Saqlash</button>
                         </div>
                     </form>
                 </div>
@@ -387,10 +391,9 @@
         </div>
     </div>
 
-    <!-- MODAL 2: CHECK-OUT -->
+    <!-- MODAL 2: CHECK-OUT (Chiqish va To'lov) -->
     <div id="modal-checkout" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <!-- Overlay -->
             <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeCheckOutModal()">
                 <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"></div>
             </div>
@@ -403,26 +406,22 @@
                             <span id="checkout-badge-dot" class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-glow-red"></span>
                             Chiqishni Qayd Etish & To'lov
                         </h3>
-                        <button onclick="closeCheckOutModal()" class="text-slate-400 hover:text-white transition-colors">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
+                        <button onclick="closeCheckOutModal()" class="text-slate-400 hover:text-white transition-colors">&times;</button>
                     </div>
 
-                    <!-- Checkout Details -->
                     <div class="mt-4 flex flex-col gap-4">
                         <input type="hidden" id="checkout-session-id">
                         
                         <div class="grid grid-cols-2 gap-4">
                             <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
                                 <span class="text-[10px] text-slate-500 font-semibold uppercase">Joy</span>
-                                <div id="checkout-spot-display" class="text-lg font-bold font-title text-slate-100 mt-1">A1</div>
-                                <div id="checkout-spot-type-display" class="text-[10px] text-slate-400 mt-0.5">Standard</div>
+                                <div id="checkout-spot-display" class="text-lg font-bold font-title text-slate-100 mt-1">-</div>
+                                <div id="checkout-spot-type-display" class="text-[10px] text-slate-400 mt-0.5">-</div>
                             </div>
                             <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
                                 <span class="text-[10px] text-slate-500 font-semibold uppercase">Davlat Raqami</span>
-                                <div id="checkout-plate-display" class="text-lg font-bold font-title text-indigo-400 mt-1">01A123BC</div>
+                                <div id="checkout-plate-display" class="text-lg font-bold font-title text-indigo-400 mt-1">-</div>
+                                <div id="checkout-session-type-display" class="text-[10px] text-emerald-400 mt-0.5">-</div>
                             </div>
                         </div>
 
@@ -439,23 +438,30 @@
                                 <span class="text-slate-400 font-semibold">Turgan vaqti:</span>
                                 <span id="checkout-duration-display" class="font-bold text-slate-100 tabular-nums">0 daqiqa</span>
                             </div>
-                            <div id="checkout-free-applied-row" class="hidden justify-between text-emerald-400 font-semibold">
-                                <span>Bepul vaqt chegirildi:</span>
-                                <span>Ha (Kirish bepul)</span>
-                            </div>
+                        </div>
+
+                        <!-- Ticket Lost Checkbox -->
+                        <div class="flex items-center gap-2 bg-rose-950/20 border border-rose-900/30 p-3 rounded-xl">
+                            <input type="checkbox" id="checkout-lost-ticket" onchange="toggleLostTicketState(this.checked)" class="w-4 h-4 rounded border-rose-900 bg-slate-950 text-rose-600 focus:ring-rose-500 focus:ring-opacity-25 focus:ring-2">
+                            <label for="checkout-lost-ticket" class="text-xs font-semibold text-rose-300 cursor-pointer select-none">
+                                Kvitansiya yo'qolgan (Jarimali to'lov)
+                            </label>
                         </div>
 
                         <!-- Payment display -->
                         <div class="bg-indigo-600/10 border border-indigo-500/20 p-5 rounded-2xl text-center">
                             <span class="text-xs text-indigo-300 font-semibold uppercase tracking-wider">Jami to'lov miqdori</span>
                             <div id="checkout-amount-display" class="text-3xl font-extrabold font-title text-indigo-300 mt-2 tabular-nums">0 so'm</div>
-                            <p class="text-[10px] text-indigo-400/80 mt-1.5">Spot koeffitsiyenti: <span id="checkout-multiplier-display">1.0x</span></p>
+                            <p class="text-[9px] text-indigo-400/80 mt-1.5">
+                                Koeffitsiyent: <span id="checkout-multiplier-display">1.0x</span> | 
+                                1 daqiqa ≈ <span id="checkout-minute-rate-display">166.7</span> so'm
+                            </p>
                         </div>
 
                         <!-- Submit Buttons -->
                         <div class="mt-6 flex justify-end gap-3 border-t border-slate-800 pt-4">
                             <button type="button" onclick="closeCheckOutModal()" class="px-5 py-2.5 rounded-xl border border-slate-700/60 hover:bg-slate-800 font-semibold text-slate-300 text-sm transition">Bekor Qilish</button>
-                            <button onclick="submitCheckOut()" class="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 font-semibold text-white text-sm shadow-lg shadow-rose-600/20 hover:shadow-rose-600/30 transition flex items-center gap-2">
+                            <button onclick="submitCheckOut()" class="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 font-semibold text-white text-sm shadow-lg shadow-rose-600/20 transition flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                 </svg>
@@ -471,7 +477,6 @@
     <!-- MODAL 3: SETTINGS -->
     <div id="modal-settings" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <!-- Overlay -->
             <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeSettingsModal()">
                 <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"></div>
             </div>
@@ -483,42 +488,33 @@
                         <h3 class="text-lg font-bold font-title text-slate-100">
                             Tarif va Qoidalar Sozlamalari
                         </h3>
-                        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white transition-colors">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
+                        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white transition-colors">&times;</button>
                     </div>
 
                     <form id="form-settings" class="mt-4 flex flex-col gap-4" onsubmit="submitSettings(event)">
-                        <!-- Rate Input -->
                         <div>
                             <label for="settings-rate" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Soatlik to'lov miqdori (UZS)</label>
                             <input type="number" id="settings-rate" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-indigo-500 transition">
                         </div>
 
-                        <!-- Free Minutes -->
                         <div>
                             <label for="settings-free-minutes" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Bepul daqiqalar (dastlabki)</label>
                             <input type="number" id="settings-free-minutes" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-indigo-500 transition">
                         </div>
 
-                        <!-- Min Charge Amount -->
                         <div>
-                            <label for="settings-min-amount" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Minimal to'lov summasi (UZS)</label>
-                            <input type="number" id="settings-min-amount" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-indigo-500 transition">
+                            <label for="settings-cap" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Kunlik eng yuqori limit (Capping - UZS)</label>
+                            <input type="number" id="settings-cap" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-indigo-500 transition">
                         </div>
 
-                        <!-- Min Charge Duration -->
                         <div>
-                            <label for="settings-min-duration" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Minimal to'lov vaqti (daqiqa)</label>
-                            <input type="number" id="settings-min-duration" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-indigo-500 transition">
+                            <label for="settings-penalty" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Chek yo'qotganlik jarimasi (UZS)</label>
+                            <input type="number" id="settings-penalty" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-indigo-500 transition">
                         </div>
 
-                        <!-- Submit Buttons -->
                         <div class="mt-6 flex justify-end gap-3 border-t border-slate-800 pt-4">
                             <button type="button" onclick="closeSettingsModal()" class="px-5 py-2.5 rounded-xl border border-slate-700/60 hover:bg-slate-800 font-semibold text-slate-300 text-sm transition">Bekor Qilish</button>
-                            <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-sm shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition">Saqlash</button>
+                            <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-sm shadow-lg shadow-indigo-600/20 transition">Saqlash</button>
                         </div>
                     </form>
                 </div>
@@ -526,10 +522,9 @@
         </div>
     </div>
 
-    <!-- MODAL 4: HISTORY REPORT -->
+    <!-- MODAL 4: HISTORY ARCHIVE -->
     <div id="modal-history" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <!-- Overlay -->
             <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeHistoryReportModal()">
                 <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"></div>
             </div>
@@ -544,11 +539,7 @@
                             </svg>
                             Sessiyalar Arxivi & Filtrlash
                         </h3>
-                        <button onclick="closeHistoryReportModal()" class="text-slate-400 hover:text-white transition-colors">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
+                        <button onclick="closeHistoryReportModal()" class="text-slate-400 hover:text-white transition-colors">&times;</button>
                     </div>
 
                     <!-- Filter Form -->
@@ -567,7 +558,7 @@
                         </div>
                         <div class="flex items-end gap-2">
                             <button onclick="fetchHistoryReport()" class="flex-grow bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 px-4 rounded-lg text-xs transition">Qidirish</button>
-                            <button onclick="triggerExportCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition flex items-center justify-center" title="CSV yuklab olish">
+                            <button onclick="triggerExportCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition flex items-center justify-center">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                 </svg>
@@ -595,15 +586,14 @@
                                     <th class="py-2.5 px-4">Davlat Raqami</th>
                                     <th class="py-2.5 px-4">Joy</th>
                                     <th class="py-2.5 px-4">Joy Turi</th>
+                                    <th class="py-2.5 px-4">Turi</th>
                                     <th class="py-2.5 px-4">Kirish vaqti</th>
                                     <th class="py-2.5 px-4">Chiqish vaqti</th>
                                     <th class="py-2.5 px-4 text-right">Daqiqa</th>
                                     <th class="py-2.5 px-4 text-right">To'lov (UZS)</th>
                                 </tr>
                             </thead>
-                            <tbody id="history-table-body" class="divide-y divide-slate-900 font-medium">
-                                <!-- Loaded dynamically -->
-                            </tbody>
+                            <tbody id="history-table-body" class="divide-y divide-slate-900 font-medium"></tbody>
                         </table>
                         <div id="history-empty-message" class="text-center py-8 text-slate-500 font-medium hidden">
                             Ma'lumot topilmadi.
@@ -618,10 +608,9 @@
         </div>
     </div>
 
-    <!-- MODAL 5: RECEIPT PREVIEW (Kvitansiya Chop Etish Simulyatori) -->
+    <!-- MODAL 5: RECEIPT PREVIEW (Printer Simulator) -->
     <div id="modal-receipt-preview" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <!-- Overlay -->
             <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeReceiptPreviewModal()">
                 <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"></div>
             </div>
@@ -634,16 +623,13 @@
                         <button onclick="closeReceiptPreviewModal()" class="text-slate-400 hover:text-white transition-colors">&times;</button>
                     </div>
 
-                    <!-- Receipt Visual Paper -->
                     <div id="receipt-paper" class="bg-white text-slate-900 p-6 rounded-lg font-mono text-xs shadow-inner flex flex-col gap-4 border border-slate-200 select-all">
-                        <!-- Header -->
                         <div class="text-center flex flex-col gap-1 border-b border-dashed border-slate-400 pb-3">
                             <h4 class="font-bold text-sm">*** PARKOVKA ***</h4>
                             <p class="text-[10px] text-slate-600">Smart Parking System</p>
-                            <p class="text-[9px] text-slate-500" id="receipt-type-label">KIRISH KVITANSIYASI</p>
+                            <p class="text-[9px] text-slate-500 font-bold" id="receipt-type-label">KIRISH KVITANSIYASI</p>
                         </div>
                         
-                        <!-- Content -->
                         <div class="flex flex-col gap-2">
                             <div class="flex justify-between">
                                 <span>CHIP NO:</span>
@@ -655,7 +641,7 @@
                             </div>
                             <div class="flex justify-between">
                                 <span>PARKING JOYI:</span>
-                                <span id="receipt-spot" class="font-bold">A12 (VIP)</span>
+                                <span id="receipt-spot" class="font-bold">A12</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>KIRISH VAQTI:</span>
@@ -671,40 +657,31 @@
                             </div>
                         </div>
 
-                        <!-- Calculations -->
                         <div id="receipt-billing-details" class="border-t border-dashed border-slate-400 pt-3 flex flex-col gap-1.5 text-[10px]">
                             <div class="flex justify-between">
                                 <span>Soatlik tarif:</span>
                                 <span id="receipt-billing-rate">10,000 so'm</span>
                             </div>
-                            <div class="flex justify-between">
-                                <span>Bepul daqiqalar:</span>
-                                <span id="receipt-billing-free">10 min</span>
-                            </div>
                             <div class="flex justify-between text-indigo-950 font-semibold">
                                 <span>Joy koeffitsiyenti:</span>
                                 <span id="receipt-billing-multiplier">1.0x</span>
                             </div>
+                            <div id="receipt-billing-penalty-row" class="hidden justify-between text-rose-700 font-bold">
+                                <span>Chek yo'qolgan jarimasi:</span>
+                                <span id="receipt-billing-penalty">50,000 so'm</span>
+                            </div>
                         </div>
 
-                        <!-- Totals -->
                         <div class="border-t-2 border-dashed border-slate-900 pt-3 text-center">
                             <span class="text-[9px] font-bold text-slate-500 uppercase">Jami to'langan to'lov</span>
                             <div id="receipt-total-amount" class="text-xl font-bold text-slate-900 mt-1">35,000 so'm</div>
                         </div>
 
-                        <!-- Barcode / QR Code simulation -->
                         <div class="flex flex-col items-center gap-1 mt-2">
                             <div class="w-full flex items-center justify-center gap-0.5 h-8 bg-slate-950 p-1">
                                 <div class="w-0.5 h-full bg-white"></div>
                                 <div class="w-1.5 h-full bg-white"></div>
                                 <div class="w-0.5 h-full bg-white"></div>
-                                <div class="w-1 h-full bg-white"></div>
-                                <div class="w-2 h-full bg-white"></div>
-                                <div class="w-0.5 h-full bg-white"></div>
-                                <div class="w-1 h-full bg-white"></div>
-                                <div class="w-0.5 h-full bg-white"></div>
-                                <div class="w-1.5 h-full bg-white"></div>
                                 <div class="w-1 h-full bg-white"></div>
                                 <div class="w-2 h-full bg-white"></div>
                                 <div class="w-0.5 h-full bg-white"></div>
@@ -714,10 +691,9 @@
                         </div>
                     </div>
 
-                    <!-- Print buttons -->
                     <div class="flex items-center gap-3 border-t border-slate-800 pt-4">
                         <button type="button" onclick="closeReceiptPreviewModal()" class="flex-grow py-2.5 rounded-xl border border-slate-700/60 hover:bg-slate-800 font-semibold text-slate-300 text-sm transition">Yopish</button>
-                        <button onclick="triggerBrowserPrint()" class="flex-grow py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-sm shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+                        <button onclick="triggerBrowserPrint()" class="flex-grow py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-sm shadow-lg shadow-indigo-600/20 transition flex items-center justify-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-3a2 2 0 00-2-2H9a2 2 0 00-2 2v3a2 2 0 002 2zm5-17h2a2 2 0 012 2v3H9V4a2 2 0 012-2z"/>
                             </svg>
@@ -729,34 +705,147 @@
         </div>
     </div>
 
-    <!-- Isolated Section for actual printing -->
-    <div id="print-receipt-section" class="hidden text-black bg-white font-mono p-4"></div>
+    <!-- MODAL 6: SUBSCRIPTIONS (Abonementlar ro'yxati va qo'shish) -->
+    <div id="modal-subscriptions" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeSubscriptionsModal()">
+                <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <div class="inline-block align-bottom bg-slate-900 border border-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                <div class="px-6 pt-6 pb-6 flex flex-col gap-4">
+                    <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                        <h3 class="text-lg font-bold font-title text-slate-100 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-glow-purple"></span>
+                            Oylik Abonement Sozlamalari (Doimiy mijozlar)
+                        </h3>
+                        <button onclick="closeSubscriptionsModal()" class="text-slate-400 hover:text-white transition-colors">&times;</button>
+                    </div>
 
-    <!-- Global Toast Alert Banner -->
-    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none no-print">
-        <!-- Toast elements dynamically added here -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Add Form -->
+                        <form onsubmit="submitAddSubscription(event)" class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col gap-3.5">
+                            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Abonement qo'shish</h4>
+                            
+                            <div>
+                                <label class="block text-[10px] text-slate-500 font-semibold uppercase mb-1">Davlat Raqami</label>
+                                <input type="text" id="sub-plate" oninput="handlePlateInput(this)" placeholder="01 A 123 BC" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-bold uppercase">
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] text-slate-500 font-semibold uppercase mb-1">Mijoz Ismi (F.I.O.)</label>
+                                <input type="text" id="sub-name" placeholder="Masalan: Sunnatulla" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-indigo-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] text-slate-500 font-semibold uppercase mb-1">Muddati (Tugash sana)</label>
+                                <input type="date" id="sub-expiry" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-indigo-500">
+                            </div>
+
+                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs shadow-lg shadow-indigo-600/10 transition mt-2">Saqlash</button>
+                        </form>
+
+                        <!-- List table -->
+                        <div class="flex flex-col gap-2.5">
+                            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Faol Abonementlar</h4>
+                            <div class="max-h-64 overflow-y-auto border border-slate-800 rounded-xl bg-slate-950">
+                                <table class="w-full text-left border-collapse text-[11px]">
+                                    <thead>
+                                        <tr class="bg-slate-900 text-slate-400 border-b border-slate-800 font-semibold">
+                                            <th class="py-2 px-3">Raqam</th>
+                                            <th class="py-2 px-3">Ism</th>
+                                            <th class="py-2 px-3 text-right">Muddati</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="subscribers-table-body" class="divide-y divide-slate-900 font-medium"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end border-t border-slate-800 pt-4">
+                        <button onclick="closeSubscriptionsModal()" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-slate-200 text-sm transition">Yopish</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 7: SHIFT SUMMARY closeout receipt (Smena yopilgandagi kvitansiya) -->
+    <div id="modal-shift-closeout" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-md"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <div class="inline-block align-bottom bg-slate-900 border border-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-sm sm:w-full">
+                <div class="px-6 py-6 flex flex-col gap-6">
+                    <div class="text-center">
+                        <h3 class="text-lg font-bold font-title text-emerald-400">Smena Yakunlandi!</h3>
+                        <p class="text-xs text-slate-400 mt-1">Kassa smena yakuniy to'lov cheki tayyorlandi</p>
+                    </div>
+
+                    <div id="shift-closeout-paper" class="bg-white text-slate-900 p-6 rounded-lg font-mono text-xs shadow-inner flex flex-col gap-4 border border-slate-200">
+                        <div class="text-center flex flex-col gap-1 border-b border-dashed border-slate-400 pb-3">
+                            <h4 class="font-bold text-sm">*** SMENA HISOBOTI ***</h4>
+                            <p class="text-[9px] text-slate-500" id="closeout-shift-id">SHIFT ID: #SH-1</p>
+                        </div>
+                        
+                        <div class="flex flex-col gap-1.5">
+                            <div class="flex justify-between"><span>OPERATOR:</span><span id="closeout-guard" class="font-bold">-</span></div>
+                            <div class="flex justify-between"><span>OCHILISH VAQTI:</span><span id="closeout-start">-</span></div>
+                            <div class="flex justify-between"><span>YOPILISH VAQTI:</span><span id="closeout-end">-</span></div>
+                        </div>
+
+                        <div class="border-t border-dashed border-slate-400 pt-3 flex flex-col gap-1.5">
+                            <div class="flex justify-between"><span>Xizmat ko'rsatildi:</span><span id="closeout-cars" class="font-bold">0 ta</span></div>
+                            <div class="flex justify-between pl-4 text-slate-600"><span>Standard (Paid):</span><span id="closeout-paid-cars">0 ta</span></div>
+                            <div class="flex justify-between pl-4 text-slate-600"><span>Abonement:</span><span id="closeout-sub-cars">0 ta</span></div>
+                            <div class="flex justify-between pl-4 text-slate-600"><span>Yo'qotilgan chek:</span><span id="closeout-lost-cars">0 ta</span></div>
+                        </div>
+
+                        <div class="border-t-2 border-dashed border-slate-900 pt-3 text-center">
+                            <span class="text-[9px] font-bold text-slate-500 uppercase">Jami yig'ilgan naqd pul (tushum)</span>
+                            <div id="closeout-revenue" class="text-xl font-bold text-slate-900 mt-1">0 so'm</div>
+                        </div>
+                    </div>
+
+                    <button onclick="closeShiftReportReceipt()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg shadow-indigo-600/10">Kassani topshirish (Chiqish)</button>
+                </div>
+            </div>
+        </div>
     </div>
 
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        // Global State Variables
+        // Global variables
         let globalSpots = [];
         let hourlyRate = {{ hourly_rate }};
         let freeMinutes = {{ free_minutes }};
         let minChargeAmount = {{ min_charge_amount }};
         let minChargeDuration = {{ min_charge_duration }};
+        let dailyMaxCap = {{ daily_max_cap }};
+        let lostTicketPenalty = {{ lost_ticket_penalty }};
         let activeCheckOutTimer = null;
         let isAnalyticsOpen = false;
+        let isIsometric = false;
+        
+        // Autopilot simulation settings
+        let isAutopilotActive = false;
+        let autopilotTimer = null;
 
-        // On Load initialization
+        // Web Audio Synth setup
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
         window.addEventListener('DOMContentLoaded', () => {
             fetchSpots();
             startClock();
             setInterval(fetchSpots, 10000);
         });
 
-        // Live Clock logic
         function startClock() {
             const timeEl = document.getElementById('live-time');
             const dateEl = document.getElementById('live-date');
@@ -776,55 +865,187 @@
             setInterval(updateTime, 1000);
         }
 
-        // Pretty format UZS amounts
         function formatUZS(amount) {
             return new Intl.NumberFormat('uz-UZ').format(amount) + " so'm";
         }
 
-        // Auto format license plate numbers dynamically as the guard types
+        // Uzbek License Plate Auto-Formatter
         function handlePlateInput(input) {
-            let cursor = input.selectionStart;
             let val = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
             let formatted = '';
             
-            // Format options:
-            // 01 A 123 BC  or  01 123 AAA
             if (val.length > 0) {
-                // First 2 digits (region code)
                 formatted += val.substring(0, 2);
                 if (val.length > 2) {
                     formatted += ' | ';
                     const afterRegion = val.substring(2);
                     
                     if (isNaN(afterRegion[0])) {
-                        // Starts with letter: e.g. A 123 BC
-                        formatted += afterRegion[0]; // letter
+                        formatted += afterRegion[0];
                         if (afterRegion.length > 1) {
-                            formatted += ' ' + afterRegion.substring(1, 4); // digits
+                            formatted += ' ' + afterRegion.substring(1, 4);
                             if (afterRegion.length > 4) {
-                                formatted += ' ' + afterRegion.substring(4, 6); // suffix letters
+                                formatted += ' ' + afterRegion.substring(4, 6);
                             }
                         }
                     } else {
-                        // Starts with digit: e.g. 123 AAA
-                        formatted += afterRegion.substring(0, 3); // digits
+                        formatted += afterRegion.substring(0, 3);
                         if (afterRegion.length > 3) {
-                            formatted += ' ' + afterRegion.substring(3, 6); // letters
+                            formatted += ' ' + afterRegion.substring(3, 6);
                         }
                     }
                 }
             }
-            
             input.value = formatted;
         }
 
-        // Parse Uzbek raw text plate back into database format (no spacing/dividers)
         function cleanPlate(formattedValue) {
             return formattedValue.replace(/[^A-Z0-9]/g, '');
         }
 
-        // Show Toast notifications
+        // Web Audio Synthesized Sound generator
+        function playSound(type) {
+            try {
+                // Resume audio context if suspended (browser security)
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                const now = audioCtx.currentTime;
+                
+                if (type === 'beep') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1000, now); // 1KHz beep
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } 
+                else if (type === 'shutter') {
+                    // camera shutter for LPR
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                }
+                else if (type === 'cash') {
+                    // Coin register double ding: ka-ching!
+                    // Ding 1
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(2200, now);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                    
+                    // Ding 2 (delayed)
+                    setTimeout(() => {
+                        const osc2 = audioCtx.createOscillator();
+                        const gain2 = audioCtx.createGain();
+                        osc2.connect(gain2);
+                        gain2.connect(audioCtx.destination);
+                        
+                        const t = audioCtx.currentTime;
+                        osc2.type = 'sine';
+                        osc2.frequency.setValueAtTime(2800, t);
+                        gain2.gain.setValueAtTime(0.1, t);
+                        gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+                        osc2.start(t);
+                        osc2.stop(t + 0.45);
+                    }, 80);
+                }
+                else if (type === 'shift_closed') {
+                    // Clean success fanfare
+                    const freqs = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                    freqs.forEach((freq, idx) => {
+                        setTimeout(() => {
+                            const o = audioCtx.createOscillator();
+                            const g = audioCtx.createGain();
+                            o.connect(g);
+                            g.connect(audioCtx.destination);
+                            o.type = 'sine';
+                            o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                            g.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                            g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                            o.start(audioCtx.currentTime);
+                            o.stop(audioCtx.currentTime + 0.35);
+                        }, idx * 100);
+                    });
+                }
+            } catch (err) {
+                console.error("Web Audio fail:", err);
+            }
+        }
+
+        // Web Speech Synthesizer Voice Announcer
+        function speakVoice(text) {
+            try {
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'uz-UZ';
+                    utterance.rate = 0.95;
+                    utterance.volume = 0.8;
+                    
+                    // Find suitable voice if possible
+                    const voices = window.speechSynthesis.getVoices();
+                    // Uzbek doesn't always have native TTS on Windows, fallback to standard or Turkish/Russian
+                    const uzVoice = voices.find(v => v.lang.includes('uz') || v.lang.includes('TR'));
+                    if (uzVoice) utterance.voice = uzVoice;
+                    
+                    window.speechSynthesis.speak(utterance);
+                }
+            } catch (e) {
+                console.error("TTS Speech fail:", e);
+            }
+        }
+
+        // Live Event Feed panel logger
+        function logEventFeed(message, type = 'info') {
+            const feed = document.getElementById('event-feed-container');
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('uz-UZ', { hour12: false });
+            
+            const item = document.createElement('div');
+            
+            let borderClass = 'border-slate-800 bg-slate-900/90 text-slate-300';
+            let icon = 'ℹ️';
+            if (type === 'checkin') { borderClass = 'border-emerald-800 bg-emerald-950/90 text-emerald-300'; icon = '📸'; }
+            else if (type === 'checkout') { borderClass = 'border-indigo-800 bg-indigo-950/90 text-indigo-300'; icon = '💰'; }
+            else if (type === 'shift') { borderStyle = 'border-purple-800 bg-purple-950/90 text-purple-300'; icon = '🔑'; }
+            
+            item.className = `p-3 rounded-xl border shadow-lg text-[10px] font-medium flex items-center gap-2 pointer-events-auto transition duration-500 transform translate-x-5 opacity-0 ${borderClass}`;
+            item.innerHTML = `
+                <span class="text-slate-500 font-mono">[${timeStr}]</span>
+                <span>${icon}</span>
+                <span class="flex-grow">${message}</span>
+            `;
+            
+            feed.appendChild(item);
+            
+            setTimeout(() => {
+                item.classList.remove('translate-x-5', 'opacity-0');
+            }, 10);
+            
+            // Remove after 6 seconds
+            setTimeout(() => {
+                item.classList.add('translate-x-5', 'opacity-0');
+                setTimeout(() => item.remove(), 500);
+            }, 6000);
+        }
+
+        // Show standard Toast notification
         function showToast(message, type = 'success') {
+            logEventFeed(message, type === 'success' ? 'info' : 'error');
+            
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             
@@ -851,10 +1072,7 @@
             });
             
             container.appendChild(toast);
-            setTimeout(() => {
-                toast.classList.remove('opacity-0', 'translate-y-2');
-            }, 10);
-            
+            setTimeout(() => toast.classList.remove('opacity-0', 'translate-y-2'), 10);
             setTimeout(() => {
                 if (toast.parentNode) {
                     toast.classList.add('opacity-0', 'translate-y-2');
@@ -863,22 +1081,21 @@
             }, 4000);
         }
 
-        // Fetch all spots and render
+        // Fetch spots
         function fetchSpots() {
-            fetch('/api/spots/')
+            fetch('/api/spots/?_=' + Date.now())
                 .then(res => res.json())
                 .then(data => {
                     globalSpots = data.spots;
                     renderSpots(globalSpots);
-                    updateDashboardStats();
+                    updateDashboardStats(data.earning_rate_per_minute);
                 })
                 .catch(err => {
                     console.error("Spots fetch error:", err);
                 });
         }
 
-        // Update dashboard statistics
-        function updateDashboardStats() {
+        function updateDashboardStats(earningRate) {
             const total = globalSpots.length;
             const occupied = globalSpots.filter(s => s.is_occupied).length;
             const free = total - occupied;
@@ -887,57 +1104,76 @@
             document.getElementById('stat-free-spots').textContent = free;
             document.getElementById('stat-occupied-spots').textContent = occupied;
 
-            fetch('/api/today-report/')
+            // Live Earning Rate Ticker
+            document.getElementById('stat-earning-rate').textContent = `${new Intl.NumberFormat('uz-UZ').format(earningRate)} so'm/daq`;
+
+            // Active Shift stats
+            fetch('/api/active-shift/?_=' + Date.now())
                 .then(res => res.json())
-                .then(data => {
-                    document.getElementById('stat-today-revenue').textContent = formatUZS(data.total_revenue);
+                .then(shiftData => {
+                    if (shiftData.active) {
+                        document.getElementById('stat-shift-revenue').textContent = formatUZS(shiftData.total_revenue);
+                        document.getElementById('shift-overlay').classList.add('hidden');
+                        document.getElementById('header-guard-name').textContent = shiftData.guard_name;
+                    } else {
+                        document.getElementById('shift-overlay').classList.remove('hidden');
+                        document.getElementById('header-guard-name').textContent = '-';
+                    }
                 });
         }
 
-        // Interactive Car Vector graphics
+        // Toggle standard/isometric perspective layouts (3D view)
+        function togglePerspectiveView() {
+            const gridWrapper = document.getElementById('grid-3d-wrapper');
+            const gridInner = document.getElementById('grid-3d-inner');
+            const btn = document.getElementById('btn-isometric');
+            
+            isIsometric = !isIsometric;
+            playSound('beep');
+            
+            if (isIsometric) {
+                gridWrapper.classList.add('grid-isometric');
+                gridInner.classList.add('grid-isometric-inner');
+                btn.textContent = "2D Ko'rinish";
+                btn.classList.add('bg-indigo-600/30', 'text-white');
+            } else {
+                gridWrapper.classList.remove('grid-isometric');
+                gridInner.classList.remove('grid-isometric-inner');
+                btn.textContent = "3D Ko'rinish";
+                btn.classList.remove('bg-indigo-600/30', 'text-white');
+            }
+        }
+
+        // Interactive top-down SVG car illustrations
         function getCarSVG(spotType) {
-            let bodyColor = "#6366f1"; // Indigo for Standard
-            if (spotType === 'VIP') bodyColor = "#eab308"; // Gold
-            else if (spotType === 'DISABLED') bodyColor = "#06b6d4"; // Cyan
+            let bodyColor = "#6366f1"; 
+            if (spotType === 'VIP') bodyColor = "#eab308"; 
+            else if (spotType === 'DISABLED') bodyColor = "#06b6d4";
+            else if (spotType === 'RESERVED') bodyColor = "#a855f7"; // Purple
             
             return `
-                <svg viewBox="0 0 100 60" class="w-16 h-10 animate-car select-none opacity-90 drop-shadow-[0_4px_6px_rgba(0,0,0,0.4)]">
-                    <!-- Wheels -->
+                <svg viewBox="0 0 100 60" class="w-16 h-10 animate-car select-none opacity-90 drop-shadow-[0_4px_6px_rgba(0,0,0,0.45)]">
                     <rect x="15" y="0" width="14" height="6" rx="2" fill="#000" />
                     <rect x="70" y="0" width="14" height="6" rx="2" fill="#000" />
                     <rect x="15" y="54" width="14" height="6" rx="2" fill="#000" />
                     <rect x="70" y="54" width="14" height="6" rx="2" fill="#000" />
-                    
-                    <!-- Car Body Shadow -->
                     <rect x="5" y="5" width="90" height="50" rx="14" fill="#090d16" opacity="0.3" />
-                    
-                    <!-- Car Base Body -->
                     <rect x="6" y="5" width="88" height="50" rx="12" fill="${bodyColor}" />
-                    
-                    <!-- Roof/Cabin Glass -->
                     <rect x="25" y="9" width="44" height="42" rx="8" fill="#1e293b" />
                     <rect x="30" y="12" width="34" height="36" rx="6" fill="#0f172a" />
-                    
-                    <!-- Front/Back Windshields -->
                     <path d="M 28 14 L 28 46 L 24 40 L 24 20 Z" fill="#475569" opacity="0.6" />
                     <path d="M 68 14 L 68 46 L 73 41 L 73 19 Z" fill="#475569" opacity="0.6" />
-                    
-                    <!-- Headlights (Yellow glowing beams) -->
                     <rect x="91" y="10" width="4" height="8" rx="1" fill="#fef08a" />
                     <rect x="91" y="42" width="4" height="8" rx="1" fill="#fef08a" />
-                    
-                    <!-- Taillights (Red) -->
                     <rect x="5" y="10" width="2" height="8" fill="#f43f5e" />
                     <rect x="5" y="42" width="2" height="8" fill="#f43f5e" />
-                    
-                    <!-- Side Mirrors -->
                     <rect x="26" y="1" width="4" height="5" rx="1" fill="${bodyColor}" />
                     <rect x="26" y="54" width="4" height="5" rx="1" fill="${bodyColor}" />
                 </svg>
             `;
         }
 
-        // Render spot elements to grid (Beautiful Glass cards)
+        // Render spot elements to grid
         function renderSpots(spots) {
             const gridA = document.getElementById('grid-section-A');
             const gridB = document.getElementById('grid-section-B');
@@ -952,7 +1188,6 @@
                 let typeBadge = '';
                 let borderStyleClass = '';
                 
-                // Determine styling based on spot type
                 if (spot.spot_type === 'VIP') {
                     glowColorClass = spot.is_occupied ? 'animate-glow-red' : 'animate-glow-gold';
                     typeBadge = `<span class="text-[8px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-1.5 py-0.5 rounded font-black tracking-wider">VIP</span>`;
@@ -965,6 +1200,12 @@
                     borderStyleClass = spot.is_occupied
                         ? 'bg-rose-950/10 border-rose-500/30 text-rose-300 hover:border-rose-400 hover:bg-rose-950/20'
                         : 'bg-cyan-950/5 border-cyan-500/20 text-cyan-400 hover:border-cyan-400 hover:bg-cyan-950/15';
+                } else if (spot.spot_type === 'RESERVED') {
+                    glowColorClass = spot.is_occupied ? 'animate-glow-red' : 'animate-glow-purple';
+                    typeBadge = `<span class="text-[8px] bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1.5 py-0.5 rounded font-black">Rezerv</span>`;
+                    borderStyleClass = spot.is_occupied
+                        ? 'bg-rose-950/10 border-rose-500/30 text-rose-300 hover:border-rose-400 hover:bg-rose-950/20'
+                        : 'bg-purple-950/5 border-purple-500/20 text-purple-400 hover:border-purple-400 hover:bg-purple-950/15';
                 } else {
                     glowColorClass = spot.is_occupied ? 'animate-glow-red' : 'animate-glow-green';
                     typeBadge = `<span class="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Standard</span>`;
@@ -974,12 +1215,15 @@
                 }
 
                 if (spot.is_occupied) {
-                    // Extract region code from plate for premium rendering: e.g. "01 | A 123 BC"
                     let displayPlate = spot.plate;
                     if (spot.plate.length >= 7) {
                         displayPlate = spot.plate.substring(0,2) + " | " + spot.plate.substring(2);
                     }
                     
+                    const badgeClass = spot.session_type === 'SUBSCRIBED' 
+                        ? '<span class="text-[8px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1 py-0.5 rounded font-black font-title leading-none">ABONEMENT</span>' 
+                        : typeBadge;
+
                     card.className = `flex flex-col items-center justify-between p-4 rounded-2xl border transition-all duration-300 text-left relative overflow-hidden group ${borderStyleClass} hover:shadow-lg shadow-black/35`;
                     card.innerHTML = `
                         <div class="w-full flex items-center justify-between z-10">
@@ -987,14 +1231,13 @@
                             <span class="w-2 h-2 rounded-full bg-rose-500 animate-glow-red"></span>
                         </div>
                         
-                        <!-- Visual top-down car icon parked -->
                         <div class="my-1.5 flex justify-center w-full z-10">
                             ${getCarSVG(spot.spot_type)}
                         </div>
                         
                         <div class="w-full flex justify-between items-center z-10 border-t border-slate-800/40 pt-2 mt-1">
                             <div class="text-[10px] font-black tracking-wider text-slate-200 font-mono uppercase">${displayPlate}</div>
-                            ${typeBadge}
+                            ${badgeClass}
                         </div>
                     `;
                     card.onclick = () => openCheckOutModal(spot.session_id);
@@ -1016,38 +1259,31 @@
                     card.onclick = () => openCheckInModal(spot.code);
                 }
                 
-                if (spot.code.startsWith('A')) {
-                    gridA.appendChild(card);
-                } else if (spot.code.startsWith('B')) {
-                    gridB.appendChild(card);
-                }
+                if (spot.code.startsWith('A')) { gridA.appendChild(card); } 
+                else if (spot.code.startsWith('B')) { gridB.appendChild(card); }
             });
         }
 
-        // Live search/filtering of spots on user entry
         function filterSpots() {
             const query = document.getElementById('search-plate').value.trim().toLowerCase();
             if (!query) {
                 renderSpots(globalSpots);
                 return;
             }
-            
             const filtered = globalSpots.filter(spot => {
                 const matchCode = spot.code.toLowerCase().includes(query);
                 const matchPlate = spot.plate ? spot.plate.toLowerCase().includes(query) : false;
                 const matchType = spot.spot_type_display.toLowerCase().includes(query);
                 return matchCode || matchPlate || matchType;
             });
-            
             renderSpots(filtered);
         }
 
-        // AUTOMATION: Simulated Barcode ticket scanner
+        // BARCODE SCANNING SIMULATOR (Pasted ticket ID trigger)
         function simulateBarcodeScan(val) {
             const trimmed = val.trim().toUpperCase();
             if (!trimmed) return;
             
-            // Format check: e.g. #PK-IN-12 or just 12
             let sessionId = null;
             if (trimmed.startsWith('#PK-IN-') || trimmed.startsWith('#PK-OUT-')) {
                 sessionId = trimmed.split('-').pop();
@@ -1056,63 +1292,53 @@
             }
             
             if (sessionId) {
-                // If it matches a session in our active sessions, open checkout modal!
-                // Clear input
                 document.getElementById('barcode-scanner-input').value = '';
                 document.getElementById('barcode-scanner-input').blur();
                 
-                showToast(`Shtrix-kod sknerlandi: Sessiya #${sessionId}`);
+                playSound('beep');
+                logEventFeed(`Shtrix-kod o'qildi: Sessiya #${sessionId}`);
                 
-                // Open checkout modal directly
                 closeCheckInModal();
                 closeHistoryReportModal();
                 closeSettingsModal();
+                closeSubscriptionsModal();
                 openCheckOutModal(sessionId);
             }
         }
 
-        // AUTOMATION: Smart LPR (License Plate Recognition) camera simulator
+        // LPR CAMERA SIMULATOR (Prefilled plate checkin helper)
         function triggerLPRSimulator() {
-            // Find a free spot (prefer VIP or first available)
             const freeSpots = globalSpots.filter(s => !s.is_occupied);
             if (freeSpots.length === 0) {
                 showToast("Barcha parking joylari band! LPR simulyatori to'xtatildi.", "error");
                 return;
             }
             
-            // Randomly choose standard or VIP or disabled
             const randomSpot = freeSpots[Math.floor(Math.random() * freeSpots.length)];
-            
-            // Generate random Uzbek Plate number: e.g. 01A123BC or 01123AAA
             const regions = ['01', '10', '30', '80', '60', '70', '90'];
             const letters = 'ABCEFHOP';
             
-            const region = regions[Math.floor(Math.random() * regions.length)];
+            // Randomly simulate an active subscriber or standard car
             let plate = '';
-            
-            if (Math.random() > 0.4) {
-                // Format type 1: 01A123BC
+            if (Math.random() > 0.7) {
+                // Subscription seeded: 01A777AA
+                plate = '01A777AA';
+            } else {
+                const region = regions[Math.floor(Math.random() * regions.length)];
                 const letter1 = letters[Math.floor(Math.random() * letters.length)];
-                const num = Math.floor(100 + Math.random() * 900); // 3 digits
+                const num = Math.floor(100 + Math.random() * 900);
                 const letter2 = letters[Math.floor(Math.random() * letters.length)];
                 const letter3 = letters[Math.floor(Math.random() * letters.length)];
                 plate = `${region}${letter1}${num}${letter2}${letter3}`;
-            } else {
-                // Format type 2: 01123AAA
-                const num = Math.floor(100 + Math.random() * 900);
-                const letter1 = letters[Math.floor(Math.random() * letters.length)];
-                const letter2 = letters[Math.floor(Math.random() * letters.length)];
-                const letter3 = letters[Math.floor(Math.random() * letters.length)];
-                plate = `${region}${num}${letter1}${letter2}${letter3}`;
             }
             
-            showToast(`LPR Kamera raqamni aniqladi: ${plate.substring(0,2)} | ${plate.substring(2)}`);
+            playSound('shutter');
+            logEventFeed(`LPR Kamera: ${plate.substring(0,2)} raqami aniqlandi.`, 'checkin');
             
-            // Prefill and open checkin modal
             openCheckInModal(randomSpot.code);
             const inputEl = document.getElementById('checkin-plate');
             inputEl.value = plate;
-            handlePlateInput(inputEl); // format visually
+            handlePlateInput(inputEl);
         }
 
 
@@ -1129,10 +1355,8 @@
             freeSpots.forEach(s => {
                 const opt = document.createElement('option');
                 opt.value = s.code;
-                opt.textContent = `${s.code} (Sektor ${s.code[0]} - ${s.spot_type_display})`;
-                if (s.code === defaultSpotCode) {
-                    opt.selected = true;
-                }
+                opt.textContent = `${s.code} (${s.spot_type_display})`;
+                if (s.code === defaultSpotCode) opt.selected = true;
                 selectEl.appendChild(opt);
             });
             
@@ -1157,19 +1381,11 @@
         function submitCheckIn(event) {
             event.preventDefault();
             const spot_code = document.getElementById('checkin-spot').value;
-            const formattedPlate = document.getElementById('checkin-plate').value;
-            const plate = cleanPlate(formattedPlate);
-            
-            if (!plate) {
-                showToast("Davlat raqamini kiriting", "error");
-                return;
-            }
+            const plate = cleanPlate(document.getElementById('checkin-plate').value);
             
             fetch('/api/start-session/', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ spot_code, plate })
             })
             .then(res => res.json())
@@ -1177,11 +1393,13 @@
                 if (data.error) {
                     showToast(data.error, "error");
                 } else {
-                    showToast(`${data.plate} mashina ${data.spot_code} joyiga muvaffaqiyatli kiritildi.`);
+                    showToast(data.message);
                     closeCheckInModal();
                     fetchSpots();
                     
-                    // Show Check-in Ticket Simulator Popup!
+                    // Voice announce Check-in
+                    speakVoice(`Kirish: ${data.plate}. Joy: ${data.spot_code}`);
+                    
                     openReceiptPreviewModal({
                         type: 'checkin',
                         ticketNo: `#PK-IN-${data.session_id}`,
@@ -1198,8 +1416,7 @@
                 }
             })
             .catch(err => {
-                console.error("Check-in error:", err);
-                showToast("Kirishni saqlashda xatolik yuz berdi.", "error");
+                showToast("Xatolik yuz berdi.", "error");
             });
         }
 
@@ -1210,18 +1427,14 @@
             
             const modal = document.getElementById('modal-checkout');
             document.getElementById('checkout-session-id').value = sessionId;
-            
-            document.getElementById('checkout-spot-display').textContent = '-';
-            document.getElementById('checkout-spot-type-display').textContent = '-';
-            document.getElementById('checkout-plate-display').textContent = '-';
-            document.getElementById('checkout-entry-display').textContent = '-';
-            document.getElementById('checkout-duration-display').textContent = '-';
-            document.getElementById('checkout-amount-display').textContent = '-';
+            document.getElementById('checkout-lost-ticket').checked = false;
             
             modal.classList.remove('hidden');
             
             const updateFeeValues = () => {
-                fetch(`/api/calculate-fee/?session_id=${sessionId}`)
+                const isLost = document.getElementById('checkout-lost-ticket').checked;
+                
+                fetch(`/api/calculate-fee/?session_id=${sessionId}&is_lost_ticket=${isLost}&_=${Date.now()}`)
                     .then(res => res.json())
                     .then(data => {
                         if (data.error) {
@@ -1230,13 +1443,22 @@
                         } else {
                             document.getElementById('checkout-spot-display').textContent = data.spot_code;
                             document.getElementById('checkout-spot-type-display').textContent = data.spot_type_display;
+                            document.getElementById('checkout-multiplier-display').textContent = `${data.multiplier}x`;
                             
                             let formatted = data.plate;
                             if (data.plate.length >= 7) {
                                 formatted = data.plate.substring(0,2) + " | " + data.plate.substring(2);
                             }
                             document.getElementById('checkout-plate-display').textContent = formatted;
-                            document.getElementById('checkout-multiplier-display').textContent = `${data.multiplier}x`;
+                            
+                            // Subscription Badge
+                            const subBadge = document.getElementById('checkout-session-type-display');
+                            if (data.session_type === 'SUBSCRIBED') {
+                                subBadge.textContent = 'Abonement (Bepul)';
+                                subBadge.classList.remove('hidden');
+                            } else {
+                                subBadge.classList.add('hidden');
+                            }
                             
                             const entryDate = new Date(data.entry_time);
                             const nowDate = new Date(data.current_time);
@@ -1257,13 +1479,10 @@
                             document.getElementById('checkout-duration-display').textContent = durationText;
                             document.getElementById('checkout-amount-display').textContent = formatUZS(data.amount);
                             
-                            const freeRow = document.getElementById('checkout-free-applied-row');
-                            if (minutes <= data.settings.free_minutes) {
-                                freeRow.classList.remove('hidden');
-                            } else {
-                                freeRow.classList.add('hidden');
-                            }
-
+                            // Minute rate display
+                            const activeRate = data.session_type === 'SUBSCRIBED' ? 0 : (hourlyRate * data.multiplier / 60.0);
+                            document.getElementById('checkout-minute-rate-display').textContent = activeRate.toFixed(2);
+                            
                             const badgeDot = document.getElementById('checkout-badge-dot');
                             badgeDot.className = "w-2.5 h-2.5 rounded-full animate-glow-red bg-rose-500";
                             if (data.spot_type === 'VIP') {
@@ -1279,9 +1498,18 @@
             };
             
             updateFeeValues();
-            
             if (activeCheckOutTimer) clearInterval(activeCheckOutTimer);
             activeCheckOutTimer = setInterval(updateFeeValues, 3000);
+        }
+
+        function toggleLostTicketState(isChecked) {
+            // Instantly recalculate fee
+            const sessionId = document.getElementById('checkout-session-id').value;
+            fetch(`/api/calculate-fee/?session_id=${sessionId}&is_lost_ticket=${isChecked}&_=${Date.now()}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('checkout-amount-display').textContent = formatUZS(data.amount);
+                });
         }
 
         function closeCheckOutModal() {
@@ -1294,25 +1522,26 @@
 
         function submitCheckOut() {
             const session_id = document.getElementById('checkout-session-id').value;
-            if (!session_id) return;
+            const is_lost = document.getElementById('checkout-lost-ticket').checked;
             
             fetch('/api/end-session/', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ session_id })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id, is_lost_ticket: is_lost })
             })
             .then(res => res.json())
             .then(data => {
                 if (data.error) {
                     showToast(data.error, "error");
                 } else {
-                    showToast(`${data.plate} uchun to'lov qabul qilindi: ${formatUZS(data.amount)}.`);
+                    playSound('cash');
+                    logEventFeed(`${data.plate} to'lov qabul qilindi: ${formatUZS(data.amount)}`, 'checkout');
+                    
                     closeCheckOutModal();
                     fetchSpots();
                     
-                    // Show Check-out receipt printer simulator popup!
+                    speakVoice(`To'lov qabul qilindi. Summa ${data.amount} so'm. Oq yo'l!`);
+                    
                     openReceiptPreviewModal({
                         type: 'checkout',
                         ticketNo: `#PK-OUT-${data.session_id}`,
@@ -1324,85 +1553,148 @@
                         amount: data.amount,
                         billingRate: hourlyRate,
                         billingFree: freeMinutes,
+                        isLost: data.is_lost_ticket,
                         multiplier: `${data.multiplier}x`
                     });
                 }
             })
             .catch(err => {
-                console.error("Check-out error:", err);
-                showToast("Chiqishni rasmiylashtirishda xatolik yuz berdi.", "error");
+                showToast("Chiqishda xatolik yuz berdi.", "error");
             });
         }
 
 
-        // MODAL LOGIC: SETTINGS
-        function openSettingsModal() {
-            const modal = document.getElementById('modal-settings');
-            document.getElementById('settings-rate').value = hourlyRate;
-            document.getElementById('settings-free-minutes').value = freeMinutes;
-            document.getElementById('settings-min-amount').value = minChargeAmount;
-            document.getElementById('settings-min-duration').value = minChargeDuration;
-            modal.classList.remove('hidden');
-        }
-
-        function closeSettingsModal() {
-            document.getElementById('modal-settings').classList.add('hidden');
-        }
-
-        function submitSettings(event) {
+        // MODAL LOGIC: SHIFTS (Open, Close summaries)
+        function submitOpenShift(event) {
             event.preventDefault();
-            const rate = document.getElementById('settings-rate').value;
-            const free_mins = document.getElementById('settings-free-minutes').value;
-            const min_amt = document.getElementById('settings-min-amount').value;
-            const min_dur = document.getElementById('settings-min-duration').value;
+            const guard_name = document.getElementById('shift-guard-name').value.trim();
             
-            fetch('/api/update-rate/', {
+            fetch('/api/active-shift/', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    hourly_rate: rate,
-                    free_minutes: free_mins,
-                    min_charge_amount: min_amt,
-                    min_charge_duration: min_dur
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ guard_name })
             })
             .then(res => res.json())
             .then(data => {
                 if (data.error) {
                     showToast(data.error, "error");
                 } else {
-                    const settings = data.settings;
-                    hourlyRate = settings.hourly_rate;
-                    freeMinutes = settings.free_minutes;
-                    minChargeAmount = settings.min_charge_amount;
-                    minChargeDuration = settings.min_charge_duration;
-                    
-                    document.getElementById('header-rate-display').textContent = new Intl.NumberFormat('uz-UZ').format(hourlyRate);
-                    document.getElementById('header-free-display').textContent = freeMinutes;
-                    
-                    showToast("Sozlamalar muvaffaqiyatli yangilandi.");
-                    closeSettingsModal();
+                    document.getElementById('shift-overlay').classList.add('hidden');
+                    document.getElementById('header-guard-name').textContent = data.guard_name;
+                    playSound('beep');
+                    speakVoice(`Kassa ochildi. Operator ${data.guard_name}.`);
+                    logEventFeed(`Smena ochildi: Operator ${data.guard_name}`, 'shift');
                     fetchSpots();
                 }
+            });
+        }
+
+        function triggerCloseShift() {
+            if (confirm("Rostdan ham smenani yakunlab, hisobot chiqarmoqchimisiz?")) {
+                fetch('/api/close-shift/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        showToast(data.error, "error");
+                    } else {
+                        playSound('shift_closed');
+                        speakVoice("Smena yakunlandi. Kassani topshirishingiz mumkin.");
+                        
+                        // Open Closeout Shift summaries receipt simulator
+                        document.getElementById('closeout-shift-id').textContent = `SHIFT ID: #SH-${data.shift_id}`;
+                        document.getElementById('closeout-guard').textContent = data.guard_name;
+                        document.getElementById('closeout-start').textContent = new Date(data.start_time).toLocaleString('uz-UZ');
+                        document.getElementById('closeout-end').textContent = new Date(data.end_time).toLocaleString('uz-UZ');
+                        document.getElementById('closeout-cars').textContent = `${data.count_completed} ta`;
+                        document.getElementById('closeout-paid-cars').textContent = `${data.count_standard} ta`;
+                        document.getElementById('closeout-sub-cars').textContent = `${data.count_subscribed} ta`;
+                        document.getElementById('closeout-lost-cars').textContent = `${data.count_lost_ticket} ta`;
+                        document.getElementById('closeout-revenue').textContent = formatUZS(data.total_revenue);
+                        
+                        document.getElementById('modal-shift-closeout').classList.remove('hidden');
+                    }
+                });
+            }
+        }
+
+        function closeShiftReportReceipt() {
+            document.getElementById('modal-shift-closeout').classList.add('hidden');
+            // Reload page to show shift login
+            window.location.reload();
+        }
+
+
+        // MODAL LOGIC: SUBSCRIPTIONS
+        function openSubscriptionsModal() {
+            document.getElementById('modal-subscriptions').classList.remove('hidden');
+            fetchSubscriptionsList();
+        }
+
+        function closeSubscriptionsModal() {
+            document.getElementById('modal-subscriptions').classList.add('hidden');
+        }
+
+        function fetchSubscriptionsList() {
+            const tbody = document.getElementById('subscribers-table-body');
+            tbody.innerHTML = '';
+            
+            fetch('/api/subscriptions/?_=' + Date.now())
+                .then(res => res.json())
+                .then(data => {
+                    data.subscriptions.forEach(sub => {
+                        const tr = document.createElement('tr');
+                        tr.className = "border-b border-slate-900 text-slate-300 hover:bg-slate-950";
+                        
+                        const statusClass = sub.is_valid ? 'text-emerald-400' : 'text-rose-500';
+                        const statusText = sub.is_valid ? 'Faol' : 'Muddati o\'tgan';
+                        
+                        tr.innerHTML = `
+                            <td class="py-2.5 px-3 font-mono font-bold tracking-wide">${sub.plate}</td>
+                            <td class="py-2.5 px-3 text-slate-400">${sub.owner_name}</td>
+                            <td class="py-2.5 px-3 text-right tabular-nums ${statusClass}">${sub.expiry_date} (${statusText})</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                });
+        }
+
+        function submitAddSubscription(event) {
+            event.preventDefault();
+            const plate = cleanPlate(document.getElementById('sub-plate').value);
+            const owner_name = document.getElementById('sub-name').value.trim();
+            const expiry_date = document.getElementById('sub-expiry').value;
+            
+            fetch('/api/subscriptions/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plate, owner_name, expiry_date })
             })
-            .catch(err => {
-                console.error("Settings update error:", err);
-                showToast("Tarifni saqlashda xatolik yuz berdi.", "error");
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(data.error, "error");
+                } else {
+                    showToast(data.message);
+                    document.getElementById('sub-plate').value = '';
+                    document.getElementById('sub-name').value = '';
+                    document.getElementById('sub-expiry').value = '';
+                    fetchSubscriptionsList();
+                    fetchSpots();
+                }
             });
         }
 
 
-        // MODAL LOGIC: HISTORY ARCHIVE
+        // MODAL LOGIC: ARXIVE
         function openHistoryReportModal() {
             const modal = document.getElementById('modal-history');
-            
             const todayStr = new Date().toISOString().substring(0, 10);
             document.getElementById('history-start-date').value = todayStr;
             document.getElementById('history-end-date').value = todayStr;
             document.getElementById('history-plate').value = '';
-
             modal.classList.remove('hidden');
             fetchHistoryReport();
         }
@@ -1414,13 +1706,12 @@
         function fetchHistoryReport() {
             const start = document.getElementById('history-start-date').value;
             const end = document.getElementById('history-end-date').value;
-            const formattedPlate = document.getElementById('history-plate').value.trim();
-            const plate = cleanPlate(formattedPlate);
+            const plate = cleanPlate(document.getElementById('history-plate').value.trim());
             
             const tbody = document.getElementById('history-table-body');
             tbody.innerHTML = '';
             
-            fetch(`/api/history-report/?start_date=${start}&end_date=${end}&plate=${plate}`)
+            fetch(`/api/history-report/?start_date=${start}&end_date=${end}&plate=${plate}&_=${Date.now()}`)
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById('history-stat-count').textContent = `${data.total_count} ta`;
@@ -1441,6 +1732,7 @@
                             let typeStyle = 'text-slate-400';
                             if (sess.spot_type === 'VIP') typeStyle = 'text-yellow-400 font-bold';
                             else if (sess.spot_type === 'DISABLED') typeStyle = 'text-cyan-400 font-bold';
+                            else if (sess.spot_type === 'RESERVED') typeStyle = 'text-purple-400 font-bold';
 
                             let displayPlate = sess.plate;
                             if (sess.plate.length >= 7) {
@@ -1451,6 +1743,7 @@
                                 <td class="py-3 px-4 font-black text-indigo-400 tracking-wider uppercase font-mono">${displayPlate}</td>
                                 <td class="py-3 px-4 font-bold text-slate-100">${sess.spot_code}</td>
                                 <td class="py-3 px-4 text-xs ${typeStyle}">${sess.spot_type_display}</td>
+                                <td class="py-3 px-4 text-xs font-semibold text-slate-400">${sess.session_type}</td>
                                 <td class="py-3 px-4 text-slate-400 tabular-nums">${inTime}</td>
                                 <td class="py-3 px-4 text-slate-400 tabular-nums">${outTime}</td>
                                 <td class="py-3 px-4 text-right tabular-nums">${Math.round(sess.total_minutes)} daq</td>
@@ -1459,19 +1752,13 @@
                             tbody.appendChild(tr);
                         });
                     }
-                })
-                .catch(err => {
-                    console.error("History report error:", err);
-                    showToast("Tarixni yuklashda xatolik yuz berdi.", "error");
                 });
         }
 
         function triggerExportCSV() {
             const start = document.getElementById('history-start-date').value;
             const end = document.getElementById('history-end-date').value;
-            const formattedPlate = document.getElementById('history-plate').value.trim();
-            const plate = cleanPlate(formattedPlate);
-            
+            const plate = cleanPlate(document.getElementById('history-plate').value.trim());
             window.location.href = `/api/export-csv/?start_date=${start}&end_date=${end}&plate=${plate}`;
         }
 
@@ -1482,7 +1769,6 @@
             
             document.getElementById('receipt-no').textContent = receiptData.ticketNo;
             
-            // Pretty spacing for ticket plate
             let formatted = receiptData.plate;
             if (receiptData.plate.length >= 7) {
                 formatted = receiptData.plate.substring(0, 2) + " | " + receiptData.plate.substring(2, 3) + " " + receiptData.plate.substring(3, 6) + " " + receiptData.plate.substring(6);
@@ -1494,6 +1780,7 @@
             const exitRows = document.querySelectorAll('.id-exit-row');
             const billingDetails = document.getElementById('receipt-billing-details');
             const typeLabel = document.getElementById('receipt-type-label');
+            const penaltyRow = document.getElementById('receipt-billing-penalty-row');
             
             if (receiptData.type === 'checkin') {
                 typeLabel.textContent = 'KIRISH KVITANSIYASI';
@@ -1509,9 +1796,15 @@
                 document.getElementById('receipt-exit-time').textContent = receiptData.exitTime;
                 document.getElementById('receipt-duration').textContent = receiptData.duration;
                 document.getElementById('receipt-billing-rate').textContent = formatUZS(receiptData.billingRate);
-                document.getElementById('receipt-billing-free').textContent = `${receiptData.billingFree} daqiqa`;
                 document.getElementById('receipt-billing-multiplier').textContent = receiptData.multiplier;
                 document.getElementById('receipt-total-amount').textContent = formatUZS(receiptData.amount);
+                
+                if (receiptData.isLost) {
+                    penaltyRow.classList.remove('hidden');
+                    document.getElementById('receipt-billing-penalty').textContent = formatUZS(lostTicketPenalty);
+                } else {
+                    penaltyRow.classList.add('hidden');
+                }
             }
             
             modal.classList.remove('hidden');
@@ -1521,7 +1814,6 @@
             document.getElementById('modal-receipt-preview').classList.add('hidden');
         }
 
-        // Print function
         function triggerBrowserPrint() {
             const receiptPaperHTML = document.getElementById('receipt-paper').outerHTML;
             const printSection = document.getElementById('print-receipt-section');
@@ -1531,6 +1823,59 @@
             window.print();
             printSection.classList.add('hidden');
             printSection.innerHTML = '';
+        }
+
+
+        // MODAL 3: GLOBAL SETTINGS
+        function openSettingsModal() {
+            const modal = document.getElementById('modal-settings');
+            document.getElementById('settings-rate').value = hourlyRate;
+            document.getElementById('settings-free-minutes').value = freeMinutes;
+            document.getElementById('settings-cap').value = dailyMaxCap;
+            document.getElementById('settings-penalty').value = lostTicketPenalty;
+            modal.classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('modal-settings').classList.add('hidden');
+        }
+
+        function submitSettings(event) {
+            event.preventDefault();
+            const rate = document.getElementById('settings-rate').value;
+            const free_mins = document.getElementById('settings-free-minutes').value;
+            const cap = document.getElementById('settings-cap').value;
+            const penalty = document.getElementById('settings-penalty').value;
+            
+            fetch('/api/update-rate/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    hourly_rate: rate,
+                    free_minutes: free_mins,
+                    daily_max_cap: cap,
+                    lost_ticket_penalty: penalty
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(data.error, "error");
+                } else {
+                    const settings = data.settings;
+                    hourlyRate = settings.hourly_rate;
+                    freeMinutes = settings.free_minutes;
+                    dailyMaxCap = settings.daily_max_cap;
+                    lostTicketPenalty = settings.lost_ticket_penalty;
+                    
+                    document.getElementById('header-rate-display').textContent = new Intl.NumberFormat('uz-UZ').format(hourlyRate);
+                    document.getElementById('header-free-display').textContent = freeMinutes;
+                    
+                    showToast("Sozlamalar muvaffaqiyatli yangilandi.");
+                    closeSettingsModal();
+                    fetchSpots();
+                }
+            });
         }
 
 
@@ -1548,33 +1893,26 @@
         }
 
         function loadAnalyticsCharts() {
-            fetch('/api/analytics-data/')
+            fetch('/api/analytics-data/?_=' + Date.now())
                 .then(res => res.json())
                 .then(data => {
                     renderEarningsChart(data.earnings_trend);
                     renderTrafficChart(data.hourly_traffic);
-                })
-                .catch(err => {
-                    console.error("Analytics fetch error:", err);
                 });
         }
 
         function renderEarningsChart(trend) {
             const container = document.getElementById('chart-earnings-container');
             container.innerHTML = '';
-            
             const maxVal = Math.max(...trend.map(t => t.value), 10000);
             
             trend.forEach(t => {
                 const barHeightPct = (t.value / maxVal) * 80;
-                
                 const col = document.createElement('div');
                 col.className = "flex flex-col items-center flex-grow group/bar relative cursor-pointer";
                 col.innerHTML = `
-                    <span class="absolute -top-6 scale-0 group-hover/bar:scale-100 bg-slate-900 border border-slate-700 text-indigo-300 font-bold px-2 py-0.5 rounded text-[10px] transition-all whitespace-nowrap z-10 tabular-nums">
-                        ${formatUZS(t.value)}
-                    </span>
-                    <div style="height: ${Math.max(barHeightPct, 4)}%" class="w-full max-w-[32px] bg-gradient-to-t from-indigo-600/80 to-violet-500 rounded-t-lg transition-all duration-700 ease-out group-hover/bar:from-indigo-500 group-hover/bar:to-violet-400 group-hover/bar:shadow-lg group-hover/bar:shadow-indigo-500/20"></div>
+                    <span class="absolute -top-6 scale-0 group-hover/bar:scale-100 bg-slate-900 border border-slate-700 text-indigo-300 font-bold px-2 py-0.5 rounded text-[10px] transition-all whitespace-nowrap z-10 tabular-nums">${formatUZS(t.value)}</span>
+                    <div style="height: ${Math.max(barHeightPct, 4)}%" class="w-full max-w-[32px] bg-gradient-to-t from-indigo-600/80 to-violet-500 rounded-t-lg transition-all duration-700 ease-out group-hover/bar:shadow-lg group-hover/bar:shadow-indigo-500/20"></div>
                     <span class="text-[10px] text-slate-500 font-semibold mt-2">${t.label}</span>
                 `;
                 container.appendChild(col);
@@ -1584,23 +1922,114 @@
         function renderTrafficChart(traffic) {
             const container = document.getElementById('chart-traffic-container');
             container.innerHTML = '';
-            
             const maxVal = Math.max(...traffic.map(t => t.value), 1);
             
             traffic.forEach(t => {
                 const barHeightPct = (t.value / maxVal) * 80;
-                
                 const col = document.createElement('div');
                 col.className = "flex flex-col items-center min-w-[20px] flex-grow group/bar relative cursor-pointer";
                 col.innerHTML = `
-                    <span class="absolute -top-6 scale-0 group-hover/bar:scale-100 bg-slate-900 border border-slate-700 text-indigo-300 font-bold px-1.5 py-0.5 rounded text-[9px] transition-all whitespace-nowrap z-10 tabular-nums">
-                        ${t.value} ta
-                    </span>
+                    <span class="absolute -top-6 scale-0 group-hover/bar:scale-100 bg-slate-900 border border-slate-700 text-indigo-300 font-bold px-1.5 py-0.5 rounded text-[9px] transition-all whitespace-nowrap z-10 tabular-nums">${t.value} ta</span>
                     <div style="height: ${Math.max(barHeightPct, 2)}%" class="w-full max-w-[8px] bg-slate-800 rounded-t-sm group-hover/bar:bg-indigo-500 transition-all duration-500 ease-out"></div>
                     <span class="text-[8px] text-slate-600 font-semibold mt-2 select-none">${t.label.split(':')[0]}</span>
                 `;
                 container.appendChild(col);
             });
+        }
+
+
+        // ==================== SMART AUTOMATION AUTOPILOT ENGINE ====================
+        function toggleAutopilot() {
+            isAutopilotActive = !isAutopilotActive;
+            const btn = document.getElementById('btn-autopilot');
+            const card = document.getElementById('card-autopilot');
+            const pulse = document.getElementById('autopilot-pulse');
+            
+            playSound('beep');
+            
+            if (isAutopilotActive) {
+                btn.textContent = "Simulyatsiyani o'chirish";
+                btn.classList.add('bg-violet-600', 'text-white');
+                card.classList.add('border-violet-500/60', 'shadow-lg', 'shadow-violet-600/10');
+                pulse.className = "w-2.5 h-2.5 rounded-full bg-violet-500 animate-ping";
+                
+                showToast("Autopilot Simulyatori faollashtirildi.");
+                
+                // Trigger auto-actions loop
+                runAutopilotCycle();
+                autopilotTimer = setInterval(runAutopilotCycle, 12000); // cycle action every 12s
+            } else {
+                btn.textContent = "Simulyatsiyani yoqish";
+                btn.classList.remove('bg-violet-600', 'text-white');
+                card.classList.remove('border-violet-500/60', 'shadow-lg', 'shadow-violet-600/10');
+                pulse.className = "w-2.5 h-2.5 rounded-full bg-slate-700";
+                
+                showToast("Autopilot Simulyatori o'chirildi.");
+                clearInterval(autopilotTimer);
+                autopilotTimer = null;
+            }
+        }
+
+        function runAutopilotCycle() {
+            // Check active sessions
+            const occupiedSpots = globalSpots.filter(s => s.is_occupied);
+            const freeSpots = globalSpots.filter(s => !s.is_occupied);
+            
+            // Random decision: Check-in (60% weight if spaces available) or Check-out (40% weight)
+            if (freeSpots.length > 0 && (occupiedSpots.length === 0 || Math.random() > 0.4)) {
+                // AUTO CHECK-IN
+                const spot = freeSpots[Math.floor(Math.random() * freeSpots.length)];
+                
+                const regions = ['01', '10', '30', '80', '60', '70', '90'];
+                const letters = 'ABCEFHOP';
+                const region = regions[Math.floor(Math.random() * regions.length)];
+                let plate = '';
+                
+                if (Math.random() > 0.7) {
+                    plate = '01A777AA'; // Abonement simulation
+                } else {
+                    const l1 = letters[Math.floor(Math.random() * letters.length)];
+                    const num = Math.floor(100 + Math.random() * 900);
+                    const l2 = letters[Math.floor(Math.random() * letters.length)];
+                    const l3 = letters[Math.floor(Math.random() * letters.length)];
+                    plate = `${region}${l1}${num}${l2}${l3}`;
+                }
+                
+                // Simulate checkin call
+                fetch('/api/start-session/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ spot_code: spot.code, plate: plate })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.error) {
+                        playSound('shutter');
+                        showToast(`LPR: ${data.plate} mashina ${data.spot_code} joyiga kiritildi (Auto).`);
+                        speakVoice(`Avto Kirish: ${data.plate}. Joy: ${data.spot_code}`);
+                        fetchSpots();
+                    }
+                });
+            } else if (occupiedSpots.length > 0) {
+                // AUTO CHECK-OUT
+                const spot = occupiedSpots[Math.floor(Math.random() * occupiedSpots.length)];
+                const is_lost = Math.random() > 0.9; // 10% chance of lost ticket
+                
+                fetch('/api/end-session/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: spot.session_id, is_lost_ticket: is_lost })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.error) {
+                        playSound('cash');
+                        showToast(`Avto Chiqish: ${data.plate} uchun to'lov olindi: ${formatUZS(data.amount)}.`);
+                        speakVoice(`Avto To'lov qabul qilindi. Summa ${data.amount} so'm.`);
+                        fetchSpots();
+                    }
+                });
+            }
         }
     </script>
 </body>

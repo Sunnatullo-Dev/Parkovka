@@ -6,6 +6,7 @@ class ParkingSpot(models.Model):
         ('STANDARD', 'Standard'),
         ('VIP', 'VIP'),
         ('DISABLED', 'Nogironlar'),
+        ('RESERVED', 'Rezervlangan'),
     ]
 
     code = models.CharField(max_length=10, unique=True)
@@ -17,6 +18,8 @@ class ParkingSpot(models.Model):
             return 2.0
         elif self.spot_type == 'DISABLED':
             return 0.0  # Free parking for disabled individuals
+        elif self.spot_type == 'RESERVED':
+            return 1.5  # Higher multiplier for reserved spots
         return 1.0
 
     def __str__(self):
@@ -25,23 +28,60 @@ class ParkingSpot(models.Model):
     class Meta:
         ordering = ['code']
 
+class ParkingSubscription(models.Model):
+    plate = models.CharField(max_length=20, unique=True)
+    owner_name = models.CharField(max_length=100)
+    expiry_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+
+    def is_valid(self):
+        return self.is_active and self.expiry_date >= timezone.localdate()
+
+    def __str__(self):
+        status = "Active" if self.is_valid() else "Expired"
+        return f"Abonement: {self.plate} ({self.owner_name}) - {status}"
+
+class ParkingShift(models.Model):
+    guard_name = models.CharField(max_length=100)
+    start_time = models.DateTimeField(default=timezone.now)
+    end_time = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        status = "Active" if self.is_active else f"Closed at {self.end_time}"
+        return f"Shift by {self.guard_name} ({status})"
+
 class ParkingSession(models.Model):
+    SESSION_TYPES = [
+        ('PAID', 'Standard'),
+        ('SUBSCRIBED', 'Abonement'),
+    ]
+
     spot = models.ForeignKey(ParkingSpot, on_delete=models.CASCADE, related_name='sessions')
+    shift = models.ForeignKey(ParkingShift, on_delete=models.SET_NULL, null=True, blank=True, related_name='sessions')
     plate = models.CharField(max_length=20)
     entry_time = models.DateTimeField(default=timezone.now)
     exit_time = models.DateTimeField(null=True, blank=True)
     total_minutes = models.FloatField(null=True, blank=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    session_type = models.CharField(max_length=15, choices=SESSION_TYPES, default='PAID')
+    is_lost_ticket = models.BooleanField(default=False)
 
-    def calculate_fee(self, hourly_rate, free_minutes=10, min_charge_amount=5000, min_charge_duration=60):
+    def calculate_fee(self, hourly_rate, free_minutes=0, min_charge_amount=0, min_charge_duration=0, daily_max_cap=80000, lost_ticket_penalty=50000):
         """
-        Calculates fee based on advanced logic:
-        1. If duration <= free_minutes => amount = 0.
-        2. Else if duration <= min_charge_duration => amount = min_charge_amount * multiplier.
-        3. Else => amount = (min_charge_amount + (duration - min_charge_duration) * (hourly_rate / 60)) * multiplier.
-        The amount is rounded to the nearest 100 UZS.
+        Calculates fee based on advanced commercial logic:
+        1. Subscriptions yield 0 UZS.
+        2. Lost ticket yields flat penalty.
+        3. Standard calculation: hourly rate, capping to daily_max_cap per 24 hours, and spot multiplier.
+        All sums rounded to nearest 100 UZS.
         """
+        if self.session_type == 'SUBSCRIBED':
+            return 0.0, 0
+            
+        if self.is_lost_ticket:
+            return 0.0, int(lost_ticket_penalty)
+            
         end_time = self.exit_time if self.exit_time else timezone.now()
         duration = end_time - self.entry_time
         duration_seconds = max(0.0, duration.total_seconds())
@@ -51,17 +91,28 @@ class ParkingSession(models.Model):
         
         if minutes <= free_minutes:
             calculated_amount = 0.0
-        elif minutes <= min_charge_duration:
-            calculated_amount = float(min_charge_amount) * multiplier
         else:
-            extra_minutes = minutes - float(min_charge_duration)
-            rate_per_minute = float(hourly_rate) / 60.0
-            base_amount = float(min_charge_amount) + (extra_minutes * rate_per_minute)
+            # Daily capping calculator: calculate in 24h blocks (1440 minutes)
+            days = int(minutes // 1440)
+            rem_minutes = minutes % 1440
+            
+            # Remaining time cost calculation
+            if rem_minutes <= min_charge_duration:
+                rem_charge = float(min_charge_amount)
+            else:
+                extra_minutes = rem_minutes - float(min_charge_duration)
+                rate_per_minute = float(hourly_rate) / 60.0
+                rem_charge = float(min_charge_amount) + (extra_minutes * rate_per_minute)
+                
+            # Capping remaining cost
+            rem_charge_capped = min(rem_charge, float(daily_max_cap))
+            
+            # Total base
+            base_amount = (days * float(daily_max_cap)) + rem_charge_capped
             calculated_amount = base_amount * multiplier
             
-        # Round to the nearest 100 UZS
+        # Round to nearest 100 UZS
         rounded_amount = round(calculated_amount / 100.0) * 100
-        
         return minutes, int(rounded_amount)
 
     def __str__(self):
