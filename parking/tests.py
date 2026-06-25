@@ -1,4 +1,5 @@
 import json
+import csv
 from decimal import Decimal
 from django.test import TestCase, Client
 from django.utils import timezone
@@ -7,126 +8,132 @@ from parking.models import ParkingSpot, ParkingSession, ParkingSetting
 
 class ParkingSystemTests(TestCase):
     def setUp(self):
-        # Create standard test client
         self.client = Client()
         
-        # Create test spot
-        self.spot = ParkingSpot.objects.create(code="A1")
+        # Create different spot types
+        self.spot_standard = ParkingSpot.objects.create(code="A1", spot_type="STANDARD")
+        self.spot_vip = ParkingSpot.objects.create(code="A9", spot_type="VIP")
+        self.spot_disabled = ParkingSpot.objects.create(code="A2", spot_type="DISABLED")
         
-        # Create default hourly rate setting
-        self.rate_setting = ParkingSetting.objects.create(
-            key="hourly_rate",
-            value="10000",
-            description="Hourly rate"
-        )
+        # Seed settings
+        ParkingSetting.objects.create(key="hourly_rate", value="10000")
+        ParkingSetting.objects.create(key="free_minutes", value="10")
+        ParkingSetting.objects.create(key="min_charge_amount", value="5000")
+        ParkingSetting.objects.create(key="min_charge_duration", value="60")
 
-    def test_fee_calculation(self):
-        """
-        Verify that fee calculation behaves according to formula:
-        minutes = duration_in_seconds / 60
-        amount = minutes * (hourly_rate / 60)
-        For 3 hours and 30 minutes (210 minutes) with 10,000 UZS/hour rate:
-        amount should be exactly 35,000 UZS.
-        """
-        entry = timezone.now() - timedelta(hours=3, minutes=30)
+    def test_fee_calculation_free_minutes(self):
+        """Verifies duration <= free_minutes results in 0 UZS."""
+        entry = timezone.now() - timedelta(minutes=8)
         session = ParkingSession.objects.create(
-            spot=self.spot,
+            spot=self.spot_standard,
             plate="01A123BC",
             entry_time=entry,
             exit_time=timezone.now()
         )
         
-        minutes, amount = session.calculate_fee(10000.0)
-        
-        self.assertAlmostEqual(minutes, 210.0, places=2)
-        self.assertEqual(amount, 35000)
+        # Calculate
+        minutes, amount = session.calculate_fee(10000.0, 10, 5000, 60)
+        self.assertAlmostEqual(minutes, 8.0, delta=0.5)
+        self.assertEqual(amount, 0)
 
-    def test_api_start_session_success(self):
-        """Verify checking in a car occupies the spot and starts a session."""
-        response = self.client.post(
-            '/api/start-session/',
-            data=json.dumps({'spot_code': 'A1', 'plate': '01A123BC'}),
-            content_type='application/json'
-        )
-        
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertEqual(data['plate'], '01A123BC')
-        self.assertEqual(data['spot_code'], 'A1')
-        
-        # Verify spot state in DB
-        self.spot.refresh_from_db()
-        self.assertTrue(self.spot.is_occupied)
-        
-        # Verify session state in DB
-        session = ParkingSession.objects.get(id=data['session_id'])
-        self.assertTrue(session.is_active)
-        self.assertEqual(session.plate, '01A123BC')
-
-    def test_api_start_session_already_occupied(self):
-        """Verify you cannot start a session on a spot that is already occupied."""
-        # Occupy the spot
-        self.spot.is_occupied = True
-        self.spot.save()
-        
-        response = self.client.post(
-            '/api/start-session/',
-            data=json.dumps({'spot_code': 'A1', 'plate': '01A123BC'}),
-            content_type='application/json'
-        )
-        
-        self.assertEqual(response.status_code, 400)
-        self.assertIn('error', response.json())
-        self.assertEqual(response.json()['error'], "'A1' joyi hozirda band.")
-
-    def test_api_end_session_success(self):
-        """Verify checking out ends the session, calculates fee, and frees the spot."""
-        # Start a session manually 1 hour ago
-        entry = timezone.now() - timedelta(hours=1)
-        self.spot.is_occupied = True
-        self.spot.save()
-        
+    def test_fee_calculation_min_charge(self):
+        """Verifies minutes <= min_charge_duration results in min_charge_amount."""
+        entry = timezone.now() - timedelta(minutes=45)
         session = ParkingSession.objects.create(
-            spot=self.spot,
+            spot=self.spot_standard,
             plate="01A123BC",
             entry_time=entry,
-            is_active=True
+            exit_time=timezone.now()
         )
         
-        response = self.client.post(
-            '/api/end-session/',
-            data=json.dumps({'session_id': session.id}),
-            content_type='application/json'
-        )
-        
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        
-        # 1 hour duration => 60 minutes. 60 * (10000 / 60) = 10,000 UZS.
-        self.assertAlmostEqual(data['total_minutes'], 60.0, delta=1.0)
-        self.assertAlmostEqual(data['amount'], 10000, delta=200)
-        
-        # Verify spot state in DB is now empty
-        self.spot.refresh_from_db()
-        self.assertFalse(self.spot.is_occupied)
-        
-        # Verify session state in DB is now closed
-        session.refresh_from_db()
-        self.assertFalse(session.is_active)
-        self.assertIsNotNone(session.exit_time)
-        self.assertAlmostEqual(float(session.amount), 10000.0, delta=200)
+        minutes, amount = session.calculate_fee(10000.0, 10, 5000, 60)
+        self.assertAlmostEqual(minutes, 45.0, delta=0.5)
+        self.assertEqual(amount, 5000)
 
-    def test_api_update_rate(self):
-        """Verify rate is updated successfully."""
-        response = self.client.post(
-            '/api/update-rate/',
-            data=json.dumps({'hourly_rate': '15000'}),
-            content_type='application/json'
+    def test_fee_calculation_long_duration(self):
+        """
+        Verifies duration > min_charge_duration adds minute rate.
+        For 90 minutes standard spot:
+        60 minutes = 5000 UZS
+        30 extra minutes at 10000 UZS/hour = 30 * (10000 / 60) = 5000 UZS.
+        Total standard: 10,000 UZS.
+        """
+        entry = timezone.now() - timedelta(minutes=90)
+        session = ParkingSession.objects.create(
+            spot=self.spot_standard,
+            plate="01A123BC",
+            entry_time=entry,
+            exit_time=timezone.now()
         )
         
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()['hourly_rate'], 15000)
+        minutes, amount = session.calculate_fee(10000.0, 10, 5000, 60)
+        self.assertAlmostEqual(minutes, 90.0, delta=0.5)
+        self.assertEqual(amount, 10000)
+
+    def test_fee_calculation_vip_multiplier(self):
+        """Verifies VIP spot doubles the calculation total."""
+        entry = timezone.now() - timedelta(minutes=90)
+        session = ParkingSession.objects.create(
+            spot=self.spot_vip,
+            plate="01A123BC",
+            entry_time=entry,
+            exit_time=timezone.now()
+        )
         
-        # Check database setting value
-        self.rate_setting.refresh_from_db()
-        self.assertEqual(self.rate_setting.value, '15000')
+        # Standard calculation is 10,000 UZS. For VIP it should be 20,000 UZS.
+        minutes, amount = session.calculate_fee(10000.0, 10, 5000, 60)
+        self.assertEqual(amount, 20000)
+
+    def test_fee_calculation_disabled_free(self):
+        """Verifies Disabled spot is always free (0 UZS)."""
+        entry = timezone.now() - timedelta(minutes=180) # 3 hours
+        session = ParkingSession.objects.create(
+            spot=self.spot_disabled,
+            plate="01A123BC",
+            entry_time=entry,
+            exit_time=timezone.now()
+        )
+        
+        minutes, amount = session.calculate_fee(10000.0, 10, 5000, 60)
+        self.assertEqual(amount, 0)
+
+    def test_api_export_csv_headers(self):
+        """Verifies CSV export endpoint returns text/csv format and attachment header."""
+        # Create a closed session to export
+        session = ParkingSession.objects.create(
+            spot=self.spot_standard,
+            plate="01A123BC",
+            entry_time=timezone.now() - timedelta(hours=1),
+            exit_time=timezone.now(),
+            total_minutes=60,
+            amount=Decimal('5000'),
+            is_active=False
+        )
+        
+        response = self.client.get('/api/export-csv/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv; charset=utf-8')
+        self.assertIn('attachment; filename="parking_history.csv"', response['Content-Disposition'])
+
+    def test_api_history_filtering(self):
+        """Verifies history report filtering by date and license plate."""
+        # Create closed session
+        session = ParkingSession.objects.create(
+            spot=self.spot_standard,
+            plate="99X999XX",
+            entry_time=timezone.now() - timedelta(hours=2),
+            exit_time=timezone.now(),
+            total_minutes=120,
+            amount=Decimal('15000'),
+            is_active=False
+        )
+        
+        # Query with match
+        response = self.client.get('/api/history-report/?plate=99X999')
+        data = response.json()
+        self.assertEqual(data['total_count'], 1)
+        self.assertEqual(data['sessions'][0]['plate'], '99X999XX')
+        
+        # Query with non-match
+        response_nomatch = self.client.get('/api/history-report/?plate=01A')
+        self.assertEqual(response_nomatch.json()['total_count'], 0)

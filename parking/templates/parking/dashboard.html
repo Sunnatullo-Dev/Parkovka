@@ -7,7 +7,7 @@
     <!-- Google Fonts: Inter & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -18,6 +18,7 @@
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
                         outfit: ['Outfit', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
                     },
                 }
             }
@@ -47,7 +48,7 @@
             background: #64748b;
         }
         
-        /* Soft glow animation for status dots */
+        /* Glow animation for status dots & spot types */
         @keyframes pulse-glow {
             0%, 100% {
                 transform: scale(1);
@@ -66,12 +67,44 @@
             box-shadow: 0 0 8px #f43f5e;
             animation: pulse-glow 2s infinite ease-in-out;
         }
+        .animate-glow-gold {
+            box-shadow: 0 0 10px #eab308;
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+        .animate-glow-cyan {
+            box-shadow: 0 0 8px #06b6d4;
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+
+        /* Print styling for receipts */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-receipt-section, #print-receipt-section * {
+                visibility: visible;
+            }
+            #print-receipt-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 72mm; /* standard POS receipt width */
+                margin: 0;
+                padding: 10px;
+                color: #000 !important;
+                background: #fff !important;
+            }
+            /* Reset print styles */
+            .no-print {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white antialiased">
 
     <!-- Top Navigation Bar -->
-    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-30 px-6 py-4">
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-30 px-6 py-4 no-print">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <!-- Brand / Logo -->
             <div class="flex items-center gap-3">
@@ -82,26 +115,24 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold font-title bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent tracking-tight">PARKOVKA</h1>
-                    <p class="text-xs text-slate-400 font-medium">Boshqaruv Paneli</p>
+                    <p class="text-xs text-slate-400 font-medium">Aqlli boshqaruv tizimi</p>
                 </div>
             </div>
 
             <!-- Real-time Clock & Status -->
-            <div class="flex items-center gap-6">
+            <div class="flex items-center gap-4">
                 <!-- Clock -->
-                <div class="text-right hidden sm:block">
+                <div class="text-right hidden sm:block mr-2">
                     <div id="live-time" class="text-lg font-semibold font-title tabular-nums text-indigo-400">12:00:00</div>
                     <div id="live-date" class="text-xs text-slate-400 font-medium">25-iyun, 2026</div>
                 </div>
 
-                <!-- Rate display & Setting trigger -->
-                <div class="flex items-center gap-2 bg-slate-800/80 border border-slate-700/60 rounded-xl px-4 py-2 hover:border-indigo-500/50 transition cursor-pointer" onclick="openSettingsModal()">
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <div>
-                        <div class="text-[10px] text-slate-400 font-semibold leading-none uppercase">Tarif</div>
-                        <div class="text-xs font-bold text-slate-200"><span id="header-rate-display" class="tabular-nums">{{ hourly_rate|floatformat:0 }}</span> UZS / soat</div>
+                <!-- Rate config summary trigger -->
+                <div class="flex items-center gap-3.5 bg-slate-800/80 border border-slate-700/60 rounded-xl px-4 py-2 hover:border-indigo-500/50 transition cursor-pointer" onclick="openSettingsModal()">
+                    <div class="flex flex-col">
+                        <div class="text-[9px] text-slate-400 font-bold uppercase leading-none">Tarif Sozlamalari</div>
+                        <div class="text-xs font-bold text-slate-200 mt-0.5"><span id="header-rate-display" class="tabular-nums">{{ hourly_rate|floatformat:0 }}</span> so'm/soat</div>
+                        <div class="text-[9px] text-indigo-400 font-medium leading-none mt-0.5">Dastlabki <span id="header-free-display">{{ free_minutes|floatformat:0 }}</span> daqiqa bepul</div>
                     </div>
                     <svg class="w-4 h-4 text-slate-400 ml-1 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
@@ -113,47 +144,35 @@
     </header>
 
     <!-- Main Content Grid -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-6 py-8 flex flex-col gap-8">
+    <main class="flex-grow max-w-7xl w-full mx-auto px-6 py-8 flex flex-col gap-8 no-print">
         
         <!-- Summary Cards Grid -->
         <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Total Spots -->
             <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
-                <div class="absolute -right-3 -bottom-3 text-slate-800/20 group-hover:text-slate-800/30 transition-colors">
-                    <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
-                </div>
                 <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Jami Joylar</p>
                 <h3 id="stat-total-spots" class="text-3xl font-bold font-title mt-2 text-slate-100 tabular-nums">0</h3>
             </div>
             
             <!-- Free Spots -->
             <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
-                <div class="absolute -right-3 -bottom-3 text-emerald-950/20 group-hover:text-emerald-950/30 transition-colors">
-                    <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                </div>
                 <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Bo'sh Joylar</p>
                 <h3 id="stat-free-spots" class="text-3xl font-bold font-title mt-2 text-emerald-400 tabular-nums">0</h3>
             </div>
 
             <!-- Occupied Spots -->
             <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700/80 transition-all duration-300">
-                <div class="absolute -right-3 -bottom-3 text-rose-950/20 group-hover:text-rose-950/30 transition-colors">
-                    <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
-                </div>
                 <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Band Joylar</p>
                 <h3 id="stat-occupied-spots" class="text-3xl font-bold font-title mt-2 text-rose-400 tabular-nums">0</h3>
             </div>
 
             <!-- Today's Earnings -->
             <div class="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-5 relative overflow-hidden group hover:border-indigo-800/40 transition-all duration-300">
-                <div class="absolute -right-3 -bottom-3 text-indigo-900/20 group-hover:text-indigo-900/30 transition-colors">
-                    <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.25z"/></svg>
-                </div>
                 <div class="flex items-center justify-between">
                     <p class="text-xs text-indigo-300 font-semibold uppercase tracking-wider">Bugungi Tushum</p>
-                    <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-semibold border border-indigo-500/30">BUGUN</span>
+                    <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-semibold border border-indigo-500/30">BUGUN</span>
                 </div>
-                <h3 id="stat-today-revenue" class="text-3xl font-bold font-title mt-2 text-indigo-300 tabular-nums">0 UZS</h3>
+                <h3 id="stat-today-revenue" class="text-3xl font-bold font-title mt-2 text-indigo-300 tabular-nums">0 so'm</h3>
             </div>
         </section>
 
@@ -166,16 +185,23 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
                 </span>
-                <input type="text" id="search-plate" oninput="filterSpots()" placeholder="Davlat raqamini yoki joyni qidiring (masalan, 01A123BC)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                <input type="text" id="search-plate" oninput="filterSpots()" placeholder="Raqam yoki joy kodi orqali qidirish..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
             </div>
 
             <!-- Buttons -->
             <div class="flex items-center gap-3 w-full sm:w-auto">
-                <button onclick="openReportModal()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-5 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 border border-slate-700/60 transition-all">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                <button onclick="toggleAnalyticsDrawer()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-4 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 border border-slate-700/60 transition-all">
+                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.003 9.003 0 1020.945 13H11V3.055z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
                     </svg>
-                    Bugungi Hisobot
+                    Statistika va Tahlillar
+                </button>
+                <button onclick="openHistoryReportModal()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-4 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 border border-slate-700/60 transition-all">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                    Arxiv va Eksport
                 </button>
                 <button onclick="openCheckInWithDefault()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition-all">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,30 +212,64 @@
             </div>
         </section>
 
+        <!-- ANALYTICS PANEL DRAWER (Collapsible) -->
+        <section id="analytics-drawer" class="hidden bg-slate-900/30 border border-slate-800 rounded-2xl p-6 transition-all duration-500">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-6">
+                <h3 class="font-bold font-title text-slate-200 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    Grafik Tahlillar va Bandlik Soatlari
+                </h3>
+                <button onclick="toggleAnalyticsDrawer()" class="text-xs text-slate-500 hover:text-slate-300 font-medium">Yopish</button>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Chart 1: Earnings (last 7 days) -->
+                <div class="bg-slate-950/40 p-4 rounded-xl border border-slate-800">
+                    <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Oxirgi 7 kunlik tushum tahlili (so'm)</h4>
+                    <div id="chart-earnings-container" class="h-48 flex items-end justify-between gap-3 pt-6 px-4 pb-2">
+                        <!-- Custom SVG Chart loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Chart 2: Busy Hours (hourly traffic) -->
+                <div class="bg-slate-950/40 p-4 rounded-xl border border-slate-800">
+                    <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Kuning soatlar bo'yicha kirish trafigi (oxirgi 30 kun)</h4>
+                    <div id="chart-traffic-container" class="h-48 flex items-end justify-between gap-1 pt-6 px-4 pb-2 overflow-x-auto">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Parking Spots Layout Map -->
         <section class="flex flex-col gap-6">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-2">
                 <h2 class="text-lg font-bold font-title tracking-tight text-slate-200">Parking Joylari Xaritasi</h2>
                 <!-- Map Legend -->
-                <div class="flex items-center gap-4 text-xs font-semibold">
-                    <div class="flex items-center gap-2">
-                        <span class="w-3 h-3 rounded-full bg-emerald-500 animate-glow-green"></span>
-                        <span class="text-slate-400">Bo'sh</span>
+                <div class="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-400">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-glow-green"></span>
+                        <span>Standard (1.0x)</span>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="w-3 h-3 rounded-full bg-rose-500 animate-glow-red"></span>
-                        <span class="text-slate-400">Band</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-glow-gold"></span>
+                        <span class="text-yellow-400">VIP (2.0x)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-glow-cyan"></span>
+                        <span class="text-cyan-400">Nogironlar (0.0x / Bepul)</span>
                     </div>
                 </div>
             </div>
 
             <!-- Map sections container -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <!-- Section A -->
                 <div class="bg-slate-900/30 border border-slate-800/80 rounded-2xl p-6">
                     <h3 class="text-sm font-bold font-title uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
-                        <span>A Sektor</span>
-                        <span class="text-xs font-medium text-slate-500">Kassa yaqinida</span>
+                        <span>A Sektor (Kassa yaqinida)</span>
                     </h3>
                     <div id="grid-section-A" class="grid grid-cols-2 sm:grid-cols-5 gap-3">
                         <!-- Loaded dynamically -->
@@ -219,8 +279,7 @@
                 <!-- Section B -->
                 <div class="bg-slate-900/30 border border-slate-800/80 rounded-2xl p-6">
                     <h3 class="text-sm font-bold font-title uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
-                        <span>B Sektor</span>
-                        <span class="text-xs font-medium text-slate-500">Chiqish yaqinida</span>
+                        <span>B Sektor (Chiqish yaqinida)</span>
                     </h3>
                     <div id="grid-section-B" class="grid grid-cols-2 sm:grid-cols-5 gap-3">
                         <!-- Loaded dynamically -->
@@ -231,12 +290,12 @@
     </main>
 
     <!-- Page Footer -->
-    <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500 bg-slate-950 mt-auto">
+    <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500 bg-slate-950 mt-auto no-print">
         <p>© 2026 Parkovka - Smart Parking Control. Barcha huquqlar himoyalangan.</p>
     </footer>
 
     <!-- MODAL 1: CHECK-IN (Kirish) -->
-    <div id="modal-checkin" class="fixed inset-0 z-50 overflow-y-auto hidden">
+    <div id="modal-checkin" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <!-- Overlay -->
             <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeCheckInModal()">
@@ -244,7 +303,6 @@
             </div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             
-            <!-- Modal panel -->
             <div class="inline-block align-bottom bg-slate-900 border border-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
                 <div class="px-6 pt-6 pb-4">
                     <div class="flex justify-between items-center pb-3 border-b border-slate-800">
@@ -287,7 +345,7 @@
     </div>
 
     <!-- MODAL 2: CHECK-OUT (Chiqish va To'lov) -->
-    <div id="modal-checkout" class="fixed inset-0 z-50 overflow-y-auto hidden">
+    <div id="modal-checkout" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <!-- Overlay -->
             <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeCheckOutModal()">
@@ -295,12 +353,11 @@
             </div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             
-            <!-- Modal panel -->
             <div class="inline-block align-bottom bg-slate-900 border border-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
                 <div class="px-6 pt-6 pb-4">
                     <div class="flex justify-between items-center pb-3 border-b border-slate-800">
                         <h3 class="text-lg font-bold font-title text-slate-100 flex items-center gap-2">
-                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-glow-red"></span>
+                            <span id="checkout-badge-dot" class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-glow-red"></span>
                             Chiqishni Qayd Etish & To'lov
                         </h3>
                         <button onclick="closeCheckOutModal()" class="text-slate-400 hover:text-white transition-colors">
@@ -318,6 +375,7 @@
                             <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
                                 <span class="text-[10px] text-slate-500 font-semibold uppercase">Joy</span>
                                 <div id="checkout-spot-display" class="text-lg font-bold font-title text-slate-100 mt-1">A1</div>
+                                <div id="checkout-spot-type-display" class="text-[10px] text-slate-400 mt-0.5">Standard</div>
                             </div>
                             <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
                                 <span class="text-[10px] text-slate-500 font-semibold uppercase">Davlat Raqami</span>
@@ -325,26 +383,30 @@
                             </div>
                         </div>
 
-                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col gap-2 text-sm">
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col gap-2 text-xs">
                             <div class="flex justify-between">
                                 <span class="text-slate-500">Kirish vaqti:</span>
-                                <span id="checkout-entry-display" class="font-medium text-slate-200 tabular-nums">25.06.2026 12:00</span>
+                                <span id="checkout-entry-display" class="font-medium text-slate-200 tabular-nums">-</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-slate-500">Hozirgi vaqt:</span>
-                                <span id="checkout-now-display" class="font-medium text-slate-200 tabular-nums">25.06.2026 15:30</span>
+                                <span id="checkout-now-display" class="font-medium text-slate-200 tabular-nums">-</span>
                             </div>
                             <div class="border-t border-slate-800 my-1 pt-1.5 flex justify-between">
-                                <span class="text-slate-400 font-medium">Turgan vaqti:</span>
-                                <span id="checkout-duration-display" class="font-semibold text-slate-100 tabular-nums">0 daqiqa</span>
+                                <span class="text-slate-400 font-semibold">Turgan vaqti:</span>
+                                <span id="checkout-duration-display" class="font-bold text-slate-100 tabular-nums">0 daqiqa</span>
+                            </div>
+                            <div id="checkout-free-applied-row" class="hidden justify-between text-emerald-400 font-semibold">
+                                <span>Bepul vaqt chegirildi:</span>
+                                <span>Ha (Kirish bepul)</span>
                             </div>
                         </div>
 
                         <!-- Payment display -->
                         <div class="bg-indigo-600/10 border border-indigo-500/20 p-5 rounded-2xl text-center">
                             <span class="text-xs text-indigo-300 font-semibold uppercase tracking-wider">Jami to'lov miqdori</span>
-                            <div id="checkout-amount-display" class="text-3xl font-extrabold font-title text-indigo-300 mt-2 tabular-nums">0 UZS</div>
-                            <p class="text-[10px] text-indigo-400/80 mt-1">Tarif: <span id="checkout-rate-display">10,000</span> UZS/soat (~166.67 UZS/daqiqa)</p>
+                            <div id="checkout-amount-display" class="text-3xl font-extrabold font-title text-indigo-300 mt-2 tabular-nums">0 so'm</div>
+                            <p class="text-[10px] text-indigo-400/80 mt-1.5">Spot koeffitsiyenti: <span id="checkout-multiplier-display">1.0x</span></p>
                         </div>
 
                         <!-- Submit Buttons -->
@@ -354,7 +416,7 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                 </svg>
-                                To'lovni Qabul Qilish (Yakunlash)
+                                To'lovni Qabul Qilish
                             </button>
                         </div>
                     </div>
@@ -364,7 +426,7 @@
     </div>
 
     <!-- MODAL 3: SETTINGS (Tarif Sozlamalari) -->
-    <div id="modal-settings" class="fixed inset-0 z-50 overflow-y-auto hidden">
+    <div id="modal-settings" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <!-- Overlay -->
             <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeSettingsModal()">
@@ -372,12 +434,11 @@
             </div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             
-            <!-- Modal panel -->
             <div class="inline-block align-bottom bg-slate-900 border border-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
                 <div class="px-6 pt-6 pb-4">
                     <div class="flex justify-between items-center pb-3 border-b border-slate-800">
-                        <h3 class="text-lg font-bold font-title text-slate-100 flex items-center gap-2">
-                            Tarif Sozlamalari
+                        <h3 class="text-lg font-bold font-title text-slate-100">
+                            Tarif va Qoidalar Sozlamalari
                         </h3>
                         <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white transition-colors">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -389,14 +450,26 @@
                     <form id="form-settings" class="mt-4 flex flex-col gap-4" onsubmit="submitSettings(event)">
                         <!-- Rate Input -->
                         <div>
-                            <label for="settings-rate" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">1 Soatlik to'lov (UZS)</label>
-                            <div class="relative">
-                                <input type="number" id="settings-rate" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-16 py-3 text-slate-100 text-lg font-semibold tracking-wide focus:outline-none focus:border-indigo-500 transition tabular-nums">
-                                <div class="absolute inset-y-0 right-0 pr-4 flex items-center text-xs font-semibold text-slate-500 pointer-events-none">
-                                    UZS
-                                </div>
-                            </div>
-                            <p class="text-[11px] text-slate-500 mt-1.5">Standart: 10,000 UZS/soat (~166.67 UZS/daqiqa).</p>
+                            <label for="settings-rate" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Soatlik to'lov miqdori (UZS)</label>
+                            <input type="number" id="settings-rate" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-indigo-500 transition">
+                        </div>
+
+                        <!-- Free Minutes -->
+                        <div>
+                            <label for="settings-free-minutes" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Bepul daqiqalar (dastlabki)</label>
+                            <input type="number" id="settings-free-minutes" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-indigo-500 transition">
+                        </div>
+
+                        <!-- Min Charge Amount -->
+                        <div>
+                            <label for="settings-min-amount" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Minimal to'lov summasi (UZS)</label>
+                            <input type="number" id="settings-min-amount" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-indigo-500 transition">
+                        </div>
+
+                        <!-- Min Charge Duration -->
+                        <div>
+                            <label for="settings-min-duration" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Minimal to'lov vaqti (daqiqa)</label>
+                            <input type="number" id="settings-min-duration" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-indigo-500 transition">
                         </div>
 
                         <!-- Submit Buttons -->
@@ -410,81 +483,215 @@
         </div>
     </div>
 
-    <!-- MODAL 4: DAILY REPORT (Kunlik Hisobot) -->
-    <div id="modal-report" class="fixed inset-0 z-50 overflow-y-auto hidden">
+    <!-- MODAL 4: HISTORY REPORT (Arxiv va Eksport) -->
+    <div id="modal-history" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <!-- Overlay -->
-            <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeReportModal()">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeHistoryReportModal()">
                 <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"></div>
             </div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             
-            <!-- Modal panel -->
-            <div class="inline-block align-bottom bg-slate-900 border border-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+            <div class="inline-block align-bottom bg-slate-900 border border-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
                 <div class="px-6 pt-6 pb-6">
                     <div class="flex justify-between items-center pb-3 border-b border-slate-800">
                         <h3 class="text-lg font-bold font-title text-slate-100 flex items-center gap-2">
                             <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                             </svg>
-                            Kunlik Hisobot (<span id="report-date-display">-</span>)
+                            Sessiyalar Arxivi & Filtrlash
                         </h3>
-                        <button onclick="closeReportModal()" class="text-slate-400 hover:text-white transition-colors">
+                        <button onclick="closeHistoryReportModal()" class="text-slate-400 hover:text-white transition-colors">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
                     </div>
 
-                    <!-- Summary Stats in Report -->
-                    <div class="grid grid-cols-3 gap-4 mt-4">
-                        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center">
-                            <span class="text-[10px] text-slate-500 font-semibold uppercase">Tugatilgan Sessiyalar</span>
-                            <div id="report-count-completed" class="text-xl font-bold font-title text-slate-100 mt-1 tabular-nums">0</div>
+                    <!-- Filter Form -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <div>
+                            <label class="block text-[10px] text-slate-400 font-semibold uppercase mb-1">Boshlanish Sana</label>
+                            <input type="date" id="history-start-date" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
                         </div>
-                        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center">
-                            <span class="text-[10px] text-slate-500 font-semibold uppercase">Faol Mashinalar</span>
-                            <div id="report-count-active" class="text-xl font-bold font-title text-indigo-400 mt-1 tabular-nums">0</div>
+                        <div>
+                            <label class="block text-[10px] text-slate-400 font-semibold uppercase mb-1">Tugash Sana</label>
+                            <input type="date" id="history-end-date" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
                         </div>
-                        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center bg-indigo-950/10 border-indigo-900/30">
-                            <span class="text-[10px] text-indigo-300 font-semibold uppercase">Umumiy Tushum</span>
-                            <div id="report-total-revenue" class="text-xl font-extrabold font-title text-indigo-300 mt-1 tabular-nums">0 UZS</div>
+                        <div>
+                            <label class="block text-[10px] text-slate-400 font-semibold uppercase mb-1">Davlat Raqami</label>
+                            <input type="text" id="history-plate" placeholder="01A123BC" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs uppercase focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <button onclick="fetchHistoryReport()" class="flex-grow bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 px-4 rounded-lg text-xs transition">Qidirish</button>
+                            <button onclick="triggerExportCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition flex items-center justify-center" title="CSV yuklab olish">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Summary Stats in History -->
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                            <span class="text-xs text-slate-400 font-medium">Jami topilgan mashinalar:</span>
+                            <span id="history-stat-count" class="text-lg font-bold text-slate-100 tabular-nums">0 ta</span>
+                        </div>
+                        <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                            <span class="text-xs text-slate-400 font-medium">Jami to'lov yig'indisi:</span>
+                            <span id="history-stat-revenue" class="text-lg font-extrabold text-indigo-300 tabular-nums">0 so'm</span>
                         </div>
                     </div>
 
                     <!-- Table of Transactions -->
-                    <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-6 mb-3">Tugatilgan sessiyalar ro'yxati</h4>
-                    <div class="max-h-60 overflow-y-auto border border-slate-800 rounded-xl bg-slate-950">
+                    <div class="max-h-60 overflow-y-auto border border-slate-800 rounded-xl bg-slate-950 mt-4">
                         <table class="w-full text-left border-collapse text-xs">
                             <thead>
-                                <tr class="bg-slate-900 text-slate-400 border-b border-slate-800 font-semibold">
+                                <tr class="bg-slate-900 text-slate-400 border-b border-slate-800 font-semibold sticky top-0">
                                     <th class="py-2.5 px-4">Davlat Raqami</th>
-                                    <th class="py-2.5 px-4 text-center">Joy</th>
+                                    <th class="py-2.5 px-4">Joy</th>
+                                    <th class="py-2.5 px-4">Joy Turi</th>
                                     <th class="py-2.5 px-4">Kirish vaqti</th>
                                     <th class="py-2.5 px-4">Chiqish vaqti</th>
                                     <th class="py-2.5 px-4 text-right">Daqiqa</th>
                                     <th class="py-2.5 px-4 text-right">To'lov (UZS)</th>
                                 </tr>
                             </thead>
-                            <tbody id="report-table-body" class="divide-y divide-slate-900 font-medium">
+                            <tbody id="history-table-body" class="divide-y divide-slate-900 font-medium">
                                 <!-- Loaded dynamically -->
                             </tbody>
                         </table>
-                        <div id="report-empty-message" class="text-center py-8 text-slate-500 font-medium hidden">
-                            Bugun hali hech qanday sessiya yakunlanmadi.
+                        <div id="history-empty-message" class="text-center py-8 text-slate-500 font-medium hidden">
+                            Ma'lumot topilmadi. Sana yoki qidiruv so'rovini tekshiring.
                         </div>
                     </div>
 
                     <div class="mt-6 flex justify-end border-t border-slate-800 pt-4">
-                        <button onclick="closeReportModal()" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-slate-200 text-sm transition">Yopish</button>
+                        <button onclick="closeHistoryReportModal()" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-slate-200 text-sm transition">Yopish</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- MODAL 5: RECEIPT PREVIEW (Kvitansiya Chop Etish Simulyatori) -->
+    <div id="modal-receipt-preview" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Overlay -->
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeReceiptPreviewModal()">
+                <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <div class="inline-block align-bottom bg-slate-900 border border-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-sm sm:w-full">
+                <div class="px-6 py-6 flex flex-col gap-6">
+                    <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                        <h3 class="text-sm font-bold font-title text-slate-300 uppercase tracking-wider">Kvitansiya Simulyatsiyasi</h3>
+                        <button onclick="closeReceiptPreviewModal()" class="text-slate-400 hover:text-white transition-colors">&times;</button>
+                    </div>
+
+                    <!-- Receipt Visual Paper -->
+                    <div id="receipt-paper" class="bg-white text-slate-900 p-6 rounded-lg font-mono text-xs shadow-inner flex flex-col gap-4 border border-slate-200 select-all">
+                        <!-- Header -->
+                        <div class="text-center flex flex-col gap-1 border-b border-dashed border-slate-400 pb-3">
+                            <h4 class="font-bold text-sm">*** PARKOVKA ***</h4>
+                            <p class="text-[10px] text-slate-600">Smart Parking System</p>
+                            <p class="text-[9px] text-slate-500" id="receipt-type-label">KIRISH KVITANSIYASI</p>
+                        </div>
+                        
+                        <!-- Content -->
+                        <div class="flex flex-col gap-2">
+                            <div class="flex justify-between">
+                                <span>TICKET NO:</span>
+                                <span id="receipt-no" class="font-bold">#PK-20260625-01</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>DAVLAT RAQAMI:</span>
+                                <span id="receipt-plate" class="font-bold text-sm">01 A 123 BC</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>PARKING JOYI:</span>
+                                <span id="receipt-spot" class="font-bold">A12 (VIP)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>KIRISH VAQTI:</span>
+                                <span id="receipt-entry-time">25.06.2026 12:00</span>
+                            </div>
+                            <div class="flex justify-between id-exit-row">
+                                <span>CHIQISH VAQTI:</span>
+                                <span id="receipt-exit-time">25.06.2026 15:30</span>
+                            </div>
+                            <div class="flex justify-between id-exit-row">
+                                <span>TURGAN VAQTI:</span>
+                                <span id="receipt-duration">210 daqiqa</span>
+                            </div>
+                        </div>
+
+                        <!-- Calculations in checkout receipt -->
+                        <div id="receipt-billing-details" class="border-t border-dashed border-slate-400 pt-3 flex flex-col gap-1.5 text-[10px]">
+                            <div class="flex justify-between">
+                                <span>Soatlik tarif:</span>
+                                <span id="receipt-billing-rate">10,000 so'm</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Bepul daqiqalar:</span>
+                                <span id="receipt-billing-free">10 min</span>
+                            </div>
+                            <div class="flex justify-between text-indigo-900 font-semibold">
+                                <span>Joy koeffitsiyenti:</span>
+                                <span id="receipt-billing-multiplier">1.0x</span>
+                            </div>
+                        </div>
+
+                        <!-- Totals -->
+                        <div class="border-t-2 border-dashed border-slate-900 pt-3 text-center">
+                            <span class="text-[9px] font-bold text-slate-500 uppercase">Jami to'langan to'lov</span>
+                            <div id="receipt-total-amount" class="text-xl font-bold text-slate-900 mt-1">35,000 so'm</div>
+                        </div>
+
+                        <!-- Fake Barcode / QR Code simulation -->
+                        <div class="flex flex-col items-center gap-1 mt-2">
+                            <div class="w-full flex items-center justify-center gap-0.5 h-8 bg-slate-950 p-1">
+                                <!-- Draw mock barcode blocks -->
+                                <div class="w-0.5 h-full bg-white"></div>
+                                <div class="w-1.5 h-full bg-white"></div>
+                                <div class="w-0.5 h-full bg-white"></div>
+                                <div class="w-1 h-full bg-white"></div>
+                                <div class="w-2 h-full bg-white"></div>
+                                <div class="w-0.5 h-full bg-white"></div>
+                                <div class="w-1 h-full bg-white"></div>
+                                <div class="w-0.5 h-full bg-white"></div>
+                                <div class="w-1.5 h-full bg-white"></div>
+                                <div class="w-1 h-full bg-white"></div>
+                                <div class="w-2 h-full bg-white"></div>
+                                <div class="w-0.5 h-full bg-white"></div>
+                                <div class="w-1 h-full bg-white"></div>
+                            </div>
+                            <p class="text-[8px] text-slate-500 uppercase tracking-widest">PARKOVKA SMART CONTROL</p>
+                        </div>
+                    </div>
+
+                    <!-- Print / Print Simulator options -->
+                    <div class="flex items-center gap-3 border-t border-slate-800 pt-4">
+                        <button type="button" onclick="closeReceiptPreviewModal()" class="flex-grow py-2.5 rounded-xl border border-slate-700/60 hover:bg-slate-800 font-semibold text-slate-300 text-sm transition">Yopish</button>
+                        <button onclick="triggerBrowserPrint()" class="flex-grow py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-sm shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-3a2 2 0 00-2-2H9a2 2 0 00-2 2v3a2 2 0 002 2zm5-17h2a2 2 0 012 2v3H9V4a2 2 0 012-2z"/>
+                            </svg>
+                            Chop etish
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Isolated Section for actual printing -->
+    <div id="print-receipt-section" class="hidden"></div>
+
     <!-- Global Toast Alert Banner -->
-    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none no-print">
         <!-- Toast elements dynamically added here -->
     </div>
 
@@ -494,12 +701,15 @@
         // Global State Variables
         let globalSpots = [];
         let hourlyRate = {{ hourly_rate }};
+        let freeMinutes = {{ free_minutes }};
+        let minChargeAmount = {{ min_charge_amount }};
+        let minChargeDuration = {{ min_charge_duration }};
         let activeCheckOutTimer = null;
+        let isAnalyticsOpen = false;
 
         // On Load initialization
         window.addEventListener('DOMContentLoaded', () => {
             fetchSpots();
-            // Start clock
             startClock();
             // Auto refresh spots every 10 seconds
             setInterval(fetchSpots, 10000);
@@ -514,7 +724,6 @@
                 const now = new Date();
                 timeEl.textContent = now.toLocaleTimeString('uz-UZ', { hour12: false });
                 
-                // Pretty date format: e.g. "25-iyun, 2026"
                 const monthsUz = [
                     'yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun',
                     'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'
@@ -528,10 +737,10 @@
 
         // Pretty format UZS amounts
         function formatUZS(amount) {
-            return new Intl.NumberFormat('uz-UZ').format(amount) + " UZS";
+            return new Intl.NumberFormat('uz-UZ').format(amount) + " so'm";
         }
 
-        // Show Toast messages (notification)
+        // Show Toast notifications
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -553,20 +762,16 @@
                 <button class="text-slate-400 hover:text-white ml-3 focus:outline-none">&times;</button>
             `;
             
-            // Remove on click
             toast.addEventListener('click', () => {
                 toast.classList.add('opacity-0', 'translate-y-2');
                 setTimeout(() => toast.remove(), 300);
             });
             
             container.appendChild(toast);
-            
-            // Trigger animation
             setTimeout(() => {
                 toast.classList.remove('opacity-0', 'translate-y-2');
             }, 10);
             
-            // Auto remove after 4 seconds
             setTimeout(() => {
                 if (toast.parentNode) {
                     toast.classList.add('opacity-0', 'translate-y-2');
@@ -600,7 +805,6 @@
             document.getElementById('stat-free-spots').textContent = free;
             document.getElementById('stat-occupied-spots').textContent = occupied;
 
-            // Fetch today's earnings to keep stats synced
             fetch('/api/today-report/')
                 .then(res => res.json())
                 .then(data => {
@@ -619,39 +823,66 @@
             spots.forEach(spot => {
                 const card = document.createElement('button');
                 
-                // Styling classes based on status
+                // Color, text, and icons configurations based on Spot Type & occupancy status
+                let glowColorClass = 'animate-glow-green';
+                let typeBadge = '';
+                let borderStyleClass = 'bg-emerald-950/10 border-emerald-500/30 text-emerald-400 hover:border-emerald-400 hover:bg-emerald-950/20';
+                
+                // Determine styling based on spot type
+                if (spot.spot_type === 'VIP') {
+                    glowColorClass = spot.is_occupied ? 'animate-glow-red' : 'animate-glow-gold';
+                    typeBadge = `<span class="text-[9px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-1.5 py-0.5 rounded font-black">VIP</span>`;
+                    borderStyleClass = spot.is_occupied 
+                        ? 'bg-rose-950/15 border-rose-500/40 text-rose-300 hover:border-rose-400 hover:bg-rose-950/25'
+                        : 'bg-yellow-950/10 border-yellow-500/30 text-yellow-400 hover:border-yellow-400 hover:bg-yellow-950/20';
+                } else if (spot.spot_type === 'DISABLED') {
+                    glowColorClass = spot.is_occupied ? 'animate-glow-red' : 'animate-glow-cyan';
+                    typeBadge = `<span class="text-[9px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded font-black flex items-center gap-0.5">♿ Nogiron</span>`;
+                    borderStyleClass = spot.is_occupied
+                        ? 'bg-rose-950/15 border-rose-500/40 text-rose-300 hover:border-rose-400 hover:bg-rose-950/25'
+                        : 'bg-cyan-950/10 border-cyan-500/30 text-cyan-400 hover:border-cyan-400 hover:bg-cyan-950/20';
+                } else {
+                    glowColorClass = spot.is_occupied ? 'animate-glow-red' : 'animate-glow-green';
+                    typeBadge = `<span class="text-[9px] text-slate-500 font-bold uppercase">Standard</span>`;
+                    borderStyleClass = spot.is_occupied
+                        ? 'bg-rose-950/15 border-rose-500/40 text-rose-300 hover:border-rose-400 hover:bg-rose-950/25'
+                        : 'bg-emerald-950/10 border-emerald-500/30 text-emerald-400 hover:border-emerald-400 hover:bg-emerald-950/20';
+                }
+
                 if (spot.is_occupied) {
-                    card.className = `flex flex-col items-center justify-between p-4 rounded-xl border transition-all duration-300 text-left relative overflow-hidden bg-rose-950/15 border-rose-500/40 text-rose-300 hover:border-rose-400 hover:bg-rose-950/25 group`;
+                    card.className = `flex flex-col items-center justify-between p-4 rounded-xl border transition-all duration-300 text-left relative overflow-hidden group ${borderStyleClass}`;
                     card.innerHTML = `
                         <div class="w-full flex items-center justify-between">
                             <span class="text-sm font-black font-title tracking-wide text-slate-100">${spot.code}</span>
                             <span class="w-2 h-2 rounded-full bg-rose-500 animate-glow-red"></span>
                         </div>
-                        <div class="w-full mt-3">
-                            <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Plate</div>
-                            <div class="text-xs font-extrabold tracking-wider text-indigo-300 uppercase">${spot.plate}</div>
+                        <div class="w-full mt-3 flex justify-between items-end">
+                            <div>
+                                <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">RAQAM</div>
+                                <div class="text-xs font-black tracking-wider text-indigo-300 uppercase">${spot.plate}</div>
+                            </div>
+                            ${typeBadge}
                         </div>
                     `;
                     card.onclick = () => openCheckOutModal(spot.session_id);
                 } else {
-                    card.className = `flex flex-col items-center justify-between p-4 rounded-xl border transition-all duration-300 text-left relative overflow-hidden bg-emerald-950/10 border-emerald-500/30 text-emerald-400 hover:border-emerald-400 hover:bg-emerald-950/20 group`;
+                    card.className = `flex flex-col items-center justify-between p-4 rounded-xl border transition-all duration-300 text-left relative overflow-hidden group ${borderStyleClass}`;
                     card.innerHTML = `
                         <div class="w-full flex items-center justify-between">
                             <span class="text-sm font-black font-title tracking-wide text-slate-100">${spot.code}</span>
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-glow-green"></span>
+                            <span class="w-2.5 h-2.5 rounded-full ${glowColorClass}"></span>
                         </div>
                         <div class="w-full mt-3 flex justify-between items-center">
-                            <span class="text-[10px] text-emerald-500/70 font-bold uppercase tracking-wider">Bo'sh</span>
-                            <span class="opacity-0 group-hover:opacity-100 text-xs text-indigo-400 font-semibold transition-opacity flex items-center gap-0.5">
-                                Band qilish 
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            ${typeBadge}
+                            <span class="opacity-0 group-hover:opacity-100 text-[10px] text-indigo-400 font-bold transition-opacity flex items-center gap-0.5">
+                                Kirish 
+                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                             </span>
                         </div>
                     `;
                     card.onclick = () => openCheckInModal(spot.code);
                 }
                 
-                // Append to sector A or B
                 if (spot.code.startsWith('A')) {
                     gridA.appendChild(card);
                 } else if (spot.code.startsWith('B')) {
@@ -671,7 +902,8 @@
             const filtered = globalSpots.filter(spot => {
                 const matchCode = spot.code.toLowerCase().includes(query);
                 const matchPlate = spot.plate ? spot.plate.toLowerCase().includes(query) : false;
-                return matchCode || matchPlate;
+                const matchType = spot.spot_type_display.toLowerCase().includes(query);
+                return matchCode || matchPlate || matchType;
             });
             
             renderSpots(filtered);
@@ -684,18 +916,14 @@
             const selectEl = document.getElementById('checkin-spot');
             const inputEl = document.getElementById('checkin-plate');
             
-            // Clear input
             inputEl.value = '';
-            
-            // Build the option elements for FREE spots
             selectEl.innerHTML = '';
             
-            // Sort A-Z
             const freeSpots = globalSpots.filter(s => !s.is_occupied || s.code === defaultSpotCode);
             freeSpots.forEach(s => {
                 const opt = document.createElement('option');
                 opt.value = s.code;
-                opt.textContent = `${s.code} (Sektor ${s.code[0]})`;
+                opt.textContent = `${s.code} (Sektor ${s.code[0]} - ${s.spot_type_display})`;
                 if (s.code === defaultSpotCode) {
                     opt.selected = true;
                 }
@@ -712,7 +940,6 @@
         }
 
         function openCheckInWithDefault() {
-            // Find first free spot
             const firstFree = globalSpots.find(s => !s.is_occupied);
             openCheckInModal(firstFree ? firstFree.code : null);
         }
@@ -746,6 +973,21 @@
                     showToast(`${data.plate} mashina ${data.spot_code} joyiga muvaffaqiyatli kiritildi.`);
                     closeCheckInModal();
                     fetchSpots();
+                    
+                    // Show Check-in Ticket Simulator Popup!
+                    openReceiptPreviewModal({
+                        type: 'checkin',
+                        ticketNo: `#PK-IN-${data.session_id}`,
+                        plate: data.plate,
+                        spot: `${data.spot_code} (${data.spot_type_display})`,
+                        entryTime: new Date(data.entry_time).toLocaleString('uz-UZ'),
+                        exitTime: null,
+                        duration: null,
+                        amount: 0,
+                        billingRate: hourlyRate,
+                        billingFree: freeMinutes,
+                        multiplier: data.spot_type === 'VIP' ? '2.0x' : (data.spot_type === 'DISABLED' ? '0.0x' : '1.0x')
+                    });
                 }
             })
             .catch(err => {
@@ -762,8 +1004,9 @@
             const modal = document.getElementById('modal-checkout');
             document.getElementById('checkout-session-id').value = sessionId;
             
-            // Clear prior text
+            // Reset text
             document.getElementById('checkout-spot-display').textContent = '-';
+            document.getElementById('checkout-spot-type-display').textContent = '-';
             document.getElementById('checkout-plate-display').textContent = '-';
             document.getElementById('checkout-entry-display').textContent = '-';
             document.getElementById('checkout-duration-display').textContent = '-';
@@ -771,7 +1014,6 @@
             
             modal.classList.remove('hidden');
             
-            // Fetch live session information
             const updateFeeValues = () => {
                 fetch(`/api/calculate-fee/?session_id=${sessionId}`)
                     .then(res => res.json())
@@ -781,16 +1023,16 @@
                             closeCheckOutModal();
                         } else {
                             document.getElementById('checkout-spot-display').textContent = data.spot_code;
+                            document.getElementById('checkout-spot-type-display').textContent = data.spot_type_display;
                             document.getElementById('checkout-plate-display').textContent = data.plate;
+                            document.getElementById('checkout-multiplier-display').textContent = `${data.multiplier}x`;
                             
-                            // Pretty dates
                             const entryDate = new Date(data.entry_time);
                             const nowDate = new Date(data.current_time);
                             
                             document.getElementById('checkout-entry-display').textContent = entryDate.toLocaleString('uz-UZ', { hour12: false });
                             document.getElementById('checkout-now-display').textContent = nowDate.toLocaleString('uz-UZ', { hour12: false });
                             
-                            // Duration calculations formatting
                             const minutes = data.total_minutes;
                             let durationText = '';
                             if (minutes >= 60) {
@@ -803,7 +1045,23 @@
                             
                             document.getElementById('checkout-duration-display').textContent = durationText;
                             document.getElementById('checkout-amount-display').textContent = formatUZS(data.amount);
-                            document.getElementById('checkout-rate-display').textContent = new Intl.NumberFormat('uz-UZ').format(data.hourly_rate);
+                            
+                            // Show bepul badge row if active
+                            const freeRow = document.getElementById('checkout-free-applied-row');
+                            if (minutes <= data.settings.free_minutes) {
+                                freeRow.classList.remove('hidden');
+                            } else {
+                                freeRow.classList.add('hidden');
+                            }
+
+                            // Dynamic dot glow styling
+                            const badgeDot = document.getElementById('checkout-badge-dot');
+                            badgeDot.className = "w-2.5 h-2.5 rounded-full animate-glow-red bg-rose-500";
+                            if (data.spot_type === 'VIP') {
+                                badgeDot.className = "w-2.5 h-2.5 rounded-full animate-glow-gold bg-yellow-500";
+                            } else if (data.spot_type === 'DISABLED') {
+                                badgeDot.className = "w-2.5 h-2.5 rounded-full animate-glow-cyan bg-cyan-500";
+                            }
                         }
                     })
                     .catch(err => {
@@ -813,7 +1071,6 @@
             
             updateFeeValues();
             
-            // Start dynamic ticking loop on modal open (every 3 seconds)
             if (activeCheckOutTimer) clearInterval(activeCheckOutTimer);
             activeCheckOutTimer = setInterval(updateFeeValues, 3000);
         }
@@ -842,9 +1099,24 @@
                 if (data.error) {
                     showToast(data.error, "error");
                 } else {
-                    showToast(`${data.plate} uchun to'lov qabul qilindi: ${formatUZS(data.amount)}. Joy bo'shatildi.`);
+                    showToast(`${data.plate} uchun to'lov qabul qilindi: ${formatUZS(data.amount)}.`);
                     closeCheckOutModal();
                     fetchSpots();
+                    
+                    // Show Check-out receipt printer simulator popup!
+                    openReceiptPreviewModal({
+                        type: 'checkout',
+                        ticketNo: `#PK-OUT-${data.session_id}`,
+                        plate: data.plate,
+                        spot: `${data.spot_code}`,
+                        entryTime: new Date(data.entry_time).toLocaleString('uz-UZ'),
+                        exitTime: new Date(data.exit_time).toLocaleString('uz-UZ'),
+                        duration: `${Math.round(data.total_minutes)} daqiqa`,
+                        amount: data.amount,
+                        billingRate: hourlyRate,
+                        billingFree: freeMinutes,
+                        multiplier: `${data.multiplier}x`
+                    });
                 }
             })
             .catch(err => {
@@ -858,6 +1130,9 @@
         function openSettingsModal() {
             const modal = document.getElementById('modal-settings');
             document.getElementById('settings-rate').value = hourlyRate;
+            document.getElementById('settings-free-minutes').value = freeMinutes;
+            document.getElementById('settings-min-amount').value = minChargeAmount;
+            document.getElementById('settings-min-duration').value = minChargeDuration;
             modal.classList.remove('hidden');
         }
 
@@ -868,22 +1143,37 @@
         function submitSettings(event) {
             event.preventDefault();
             const rate = document.getElementById('settings-rate').value;
+            const free_mins = document.getElementById('settings-free-minutes').value;
+            const min_amt = document.getElementById('settings-min-amount').value;
+            const min_dur = document.getElementById('settings-min-duration').value;
             
             fetch('/api/update-rate/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ hourly_rate: rate })
+                body: JSON.stringify({ 
+                    hourly_rate: rate,
+                    free_minutes: free_mins,
+                    min_charge_amount: min_amt,
+                    min_charge_duration: min_dur
+                })
             })
             .then(res => res.json())
             .then(data => {
                 if (data.error) {
                     showToast(data.error, "error");
                 } else {
-                    hourlyRate = data.hourly_rate;
+                    const settings = data.settings;
+                    hourlyRate = settings.hourly_rate;
+                    freeMinutes = settings.free_minutes;
+                    minChargeAmount = settings.min_charge_amount;
+                    minChargeDuration = settings.min_charge_duration;
+                    
                     document.getElementById('header-rate-display').textContent = new Intl.NumberFormat('uz-UZ').format(hourlyRate);
-                    showToast(`Soatlik tarif muvaffaqiyatli o'zgartirildi: ${formatUZS(hourlyRate)}/soat.`);
+                    document.getElementById('header-free-display').textContent = freeMinutes;
+                    
+                    showToast("Sozlamalar muvaffaqiyatli yangilandi.");
                     closeSettingsModal();
                     fetchSpots();
                 }
@@ -895,62 +1185,212 @@
         }
 
 
-        // MODAL LOGIC: DAILY REPORT
-        function openReportModal() {
-            const modal = document.getElementById('modal-report');
+        // MODAL LOGIC: HISTORY ARCHIVE
+        function openHistoryReportModal() {
+            const modal = document.getElementById('modal-history');
             
-            // Clear old data
-            document.getElementById('report-date-display').textContent = '-';
-            document.getElementById('report-count-completed').textContent = '0';
-            document.getElementById('report-count-active').textContent = '0';
-            document.getElementById('report-total-revenue').textContent = '0 UZS';
+            // Set defaults to today
+            const todayStr = new Date().toISOString().substring(0, 10);
+            document.getElementById('history-start-date').value = todayStr;
+            document.getElementById('history-end-date').value = todayStr;
+            document.getElementById('history-plate').value = '';
+
+            modal.classList.remove('hidden');
+            fetchHistoryReport();
+        }
+
+        function closeHistoryReportModal() {
+            document.getElementById('modal-history').classList.add('hidden');
+        }
+
+        function fetchHistoryReport() {
+            const start = document.getElementById('history-start-date').value;
+            const end = document.getElementById('history-end-date').value;
+            const plate = document.getElementById('history-plate').value.trim();
             
-            const tbody = document.getElementById('report-table-body');
+            const tbody = document.getElementById('history-table-body');
             tbody.innerHTML = '';
             
-            // Fetch Report Data
-            fetch('/api/today-report/')
+            fetch(`/api/history-report/?start_date=${start}&end_date=${end}&plate=${plate}`)
                 .then(res => res.json())
                 .then(data => {
-                    document.getElementById('report-date-display').textContent = data.date;
-                    document.getElementById('report-count-completed').textContent = data.total_cars_completed;
-                    document.getElementById('report-count-active').textContent = data.total_active_cars;
-                    document.getElementById('report-total-revenue').textContent = formatUZS(data.total_revenue);
+                    document.getElementById('history-stat-count').textContent = `${data.total_count} ta`;
+                    document.getElementById('history-stat-revenue').textContent = formatUZS(data.total_revenue);
                     
                     if (data.sessions.length === 0) {
-                        document.getElementById('report-empty-message').classList.remove('hidden');
+                        document.getElementById('history-empty-message').classList.remove('hidden');
                     } else {
-                        document.getElementById('report-empty-message').classList.add('hidden');
+                        document.getElementById('history-empty-message').classList.add('hidden');
                         
                         data.sessions.forEach(sess => {
                             const tr = document.createElement('tr');
                             tr.className = "hover:bg-slate-900 border-b border-slate-900 text-slate-300";
                             
-                            const inTime = new Date(sess.entry_time).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit', hour12: false });
-                            const outTime = new Date(sess.exit_time).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit', hour12: false });
+                            const inTime = new Date(sess.entry_time).toLocaleString('uz-UZ', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', hour12: false });
+                            const outTime = new Date(sess.exit_time).toLocaleString('uz-UZ', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', hour12: false });
                             
+                            let typeStyle = 'text-slate-400';
+                            if (sess.spot_type === 'VIP') typeStyle = 'text-yellow-400 font-bold';
+                            else if (sess.spot_type === 'DISABLED') typeStyle = 'text-cyan-400 font-bold';
+
                             tr.innerHTML = `
-                                <td class="py-3 px-4 font-extrabold text-indigo-400 tracking-wider uppercase">${sess.plate}</td>
-                                <td class="py-3 px-4 text-center font-bold text-slate-100">${sess.spot_code}</td>
+                                <td class="py-3 px-4 font-black text-indigo-400 tracking-wider uppercase">${sess.plate}</td>
+                                <td class="py-3 px-4 font-bold text-slate-100">${sess.spot_code}</td>
+                                <td class="py-3 px-4 text-xs ${typeStyle}">${sess.spot_type_display}</td>
                                 <td class="py-3 px-4 text-slate-400 tabular-nums">${inTime}</td>
                                 <td class="py-3 px-4 text-slate-400 tabular-nums">${outTime}</td>
                                 <td class="py-3 px-4 text-right tabular-nums">${Math.round(sess.total_minutes)} daq</td>
-                                <td class="py-3 px-4 text-right font-bold text-emerald-400 tabular-nums">${new Intl.NumberFormat('uz-UZ').format(sess.amount)}</td>
+                                <td class="py-3 px-4 text-right font-black text-emerald-400 tabular-nums">${new Intl.NumberFormat('uz-UZ').format(sess.amount)}</td>
                             `;
                             tbody.appendChild(tr);
                         });
                     }
                 })
                 .catch(err => {
-                    console.error("Report fetch error:", err);
-                    showToast("Hisobot yuklashda xatolik yuz berdi.", "error");
+                    console.error("History report error:", err);
+                    showToast("Tarixni yuklashda xatolik yuz berdi.", "error");
                 });
+        }
+
+        function triggerExportCSV() {
+            const start = document.getElementById('history-start-date').value;
+            const end = document.getElementById('history-end-date').value;
+            const plate = document.getElementById('history-plate').value.trim();
+            
+            // Redirect browser directly to trigger file attachment download
+            window.location.href = `/api/export-csv/?start_date=${start}&end_date=${end}&plate=${plate}`;
+        }
+
+
+        // MODAL 5: RECEIPT PREVIEW (Printer Simulator)
+        function openReceiptPreviewModal(receiptData) {
+            const modal = document.getElementById('modal-receipt-preview');
+            
+            document.getElementById('receipt-no').textContent = receiptData.ticketNo;
+            document.getElementById('receipt-plate').textContent = receiptData.plate.replace(/(.{2})(.{3})(.{2})/g, '$1 $2 $3'); // format Uzbekistan plates
+            document.getElementById('receipt-spot').textContent = receiptData.spot;
+            document.getElementById('receipt-entry-time').textContent = receiptData.entryTime;
+            
+            const exitRows = document.querySelectorAll('.id-exit-row');
+            const billingDetails = document.getElementById('receipt-billing-details');
+            const typeLabel = document.getElementById('receipt-type-label');
+            
+            if (receiptData.type === 'checkin') {
+                typeLabel.textContent = 'KIRISH KVITANSIYASI';
+                exitRows.forEach(el => el.classList.add('hidden'));
+                billingDetails.classList.add('hidden');
+                document.getElementById('receipt-total-amount').parentNode.classList.add('hidden');
+            } else {
+                typeLabel.textContent = 'TO\'LOV CHEKI';
+                exitRows.forEach(el => el.classList.remove('hidden'));
+                billingDetails.classList.remove('hidden');
+                document.getElementById('receipt-total-amount').parentNode.classList.remove('hidden');
                 
+                document.getElementById('receipt-exit-time').textContent = receiptData.exitTime;
+                document.getElementById('receipt-duration').textContent = receiptData.duration;
+                document.getElementById('receipt-billing-rate').textContent = formatUZS(receiptData.billingRate);
+                document.getElementById('receipt-billing-free').textContent = `${receiptData.billingFree} daqiqa`;
+                document.getElementById('receipt-billing-multiplier').textContent = receiptData.multiplier;
+                document.getElementById('receipt-total-amount').textContent = formatUZS(receiptData.amount);
+            }
+            
             modal.classList.remove('hidden');
         }
 
-        function closeReportModal() {
-            document.getElementById('modal-report').classList.add('hidden');
+        function closeReceiptPreviewModal() {
+            document.getElementById('modal-receipt-preview').classList.add('hidden');
+        }
+
+        // Print function
+        function triggerBrowserPrint() {
+            // Copy receipt paper HTML content into the print-specific container
+            const receiptPaperHTML = document.getElementById('receipt-paper').outerHTML;
+            const printSection = document.getElementById('print-receipt-section');
+            printSection.innerHTML = receiptPaperHTML;
+            
+            // Show print section, print, and hide it
+            printSection.classList.remove('hidden');
+            window.print();
+            printSection.classList.add('hidden');
+            printSection.innerHTML = '';
+        }
+
+
+        // COLLAPSIBLE DRAWER & SVG CHARTS
+        function toggleAnalyticsDrawer() {
+            const drawer = document.getElementById('analytics-drawer');
+            isAnalyticsOpen = !isAnalyticsOpen;
+            
+            if (isAnalyticsOpen) {
+                drawer.classList.remove('hidden');
+                loadAnalyticsCharts();
+            } else {
+                drawer.classList.add('hidden');
+            }
+        }
+
+        function loadAnalyticsCharts() {
+            fetch('/api/analytics-data/')
+                .then(res => res.json())
+                .then(data => {
+                    renderEarningsChart(data.earnings_trend);
+                    renderTrafficChart(data.hourly_traffic);
+                })
+                .catch(err => {
+                    console.error("Analytics fetch error:", err);
+                });
+        }
+
+        // Render line/bar SVG chart for earnings
+        function renderEarningsChart(trend) {
+            const container = document.getElementById('chart-earnings-container');
+            container.innerHTML = '';
+            
+            const maxVal = Math.max(...trend.map(t => t.value), 10000);
+            
+            trend.forEach(t => {
+                const barHeightPct = (t.value / maxVal) * 80; // max 80% height
+                
+                const col = document.createElement('div');
+                col.className = "flex flex-col items-center flex-grow group/bar relative cursor-pointer";
+                col.innerHTML = `
+                    <!-- Tooltip -->
+                    <span class="absolute -top-6 scale-0 group-hover/bar:scale-100 bg-slate-900 border border-slate-700 text-indigo-300 font-bold px-2 py-0.5 rounded text-[10px] transition-all whitespace-nowrap z-10 tabular-nums">
+                        ${formatUZS(t.value)}
+                    </span>
+                    <!-- Bar -->
+                    <div style="height: ${Math.max(barHeightPct, 4)}%" class="w-full max-w-[32px] bg-gradient-to-t from-indigo-600/80 to-violet-500 rounded-t-lg transition-all duration-700 ease-out group-hover/bar:from-indigo-500 group-hover/bar:to-violet-400 group-hover/bar:shadow-lg group-hover/bar:shadow-indigo-500/20"></div>
+                    <!-- Label -->
+                    <span class="text-[10px] text-slate-500 font-semibold mt-2">${t.label}</span>
+                `;
+                container.appendChild(col);
+            });
+        }
+
+        // Render bar SVG chart for hourly traffic
+        function renderTrafficChart(traffic) {
+            const container = document.getElementById('chart-traffic-container');
+            container.innerHTML = '';
+            
+            const maxVal = Math.max(...traffic.map(t => t.value), 1);
+            
+            traffic.forEach(t => {
+                const barHeightPct = (t.value / maxVal) * 80;
+                
+                const col = document.createElement('div');
+                col.className = "flex flex-col items-center min-w-[20px] flex-grow group/bar relative cursor-pointer";
+                col.innerHTML = `
+                    <!-- Tooltip -->
+                    <span class="absolute -top-6 scale-0 group-hover/bar:scale-100 bg-slate-900 border border-slate-700 text-indigo-300 font-bold px-1.5 py-0.5 rounded text-[9px] transition-all whitespace-nowrap z-10 tabular-nums">
+                        ${t.value} ta
+                    </span>
+                    <!-- Bar -->
+                    <div style="height: ${Math.max(barHeightPct, 2)}%" class="w-full max-w-[8px] bg-slate-800 rounded-t-sm group-hover/bar:bg-indigo-500 transition-all duration-500 ease-out"></div>
+                    <!-- Label -->
+                    <span class="text-[8px] text-slate-600 font-semibold mt-2 select-none">${t.label.split(':')[0]}</span>
+                `;
+                container.appendChild(col);
+            });
         }
     </script>
 </body>

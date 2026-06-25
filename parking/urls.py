@@ -10,4 +10,7 @@ urlpatterns = [
     path('api/end-session/', views.api_end_session, name='api_end_session'),
     path('api/today-report/', views.api_today_report, name='api_today_report'),
     path('api/update-rate/', views.api_update_rate, name='api_update_rate'),
+    path('api/history-report/', views.api_history_report, name='api_history_report'),
+    path('api/export-csv/', views.api_export_csv, name='api_export_csv'),
+    path('api/analytics-data/', views.api_analytics_data, name='api_analytics_data'),
 ]
