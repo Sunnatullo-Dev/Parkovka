@@ -141,6 +141,20 @@
 
             <!-- Header widgets -->
             <div class="flex items-center gap-3">
+                <!-- Admin login widget -->
+                <div class="flex items-center gap-2 bg-slate-800/80 border border-slate-700/60 rounded-xl px-3 py-2 text-xs">
+                    <span class="w-1.5 h-1.5 rounded-full {% if is_admin %}bg-emerald-400 animate-glow-green{% else %}bg-slate-500{% endif %}" id="admin-status-dot"></span>
+                    <span class="text-[10px] uppercase font-bold text-slate-400 mr-1" id="admin-status-label">Admin:</span>
+                    <span id="admin-username" class="font-extrabold text-slate-200">{% if is_admin %}{{ username }}{% else %}Mehmon{% endif %}</span>
+                    <span id="admin-auth-btn-container">
+                        {% if is_admin %}
+                        <button onclick="logoutAdmin()" class="text-indigo-400 hover:text-indigo-300 font-extrabold ml-2 border border-slate-750 hover:border-slate-700 px-2 py-0.5 rounded transition">Chiqish</button>
+                        {% else %}
+                        <button onclick="openAdminLoginModal()" class="text-indigo-400 hover:text-indigo-300 font-extrabold ml-2 border border-slate-750 hover:border-slate-700 px-2 py-0.5 rounded transition">Kirish</button>
+                        {% endif %}
+                    </span>
+                </div>
+
                 <!-- Clock -->
                 <div class="text-right hidden sm:block mr-3">
                     <div id="live-time" class="text-lg font-semibold font-title tabular-nums text-indigo-400">12:00:00</div>
@@ -347,6 +361,44 @@
     <!-- Sidebar Live Event Notification Logger -->
     <div id="event-feed-container" class="fixed top-24 right-6 w-80 max-h-[400px] flex flex-col gap-2 z-20 pointer-events-none no-print">
         <!-- Live status notification updates -->
+    </div>
+
+    <!-- MODAL: ADMIN LOGIN -->
+    <div id="modal-admin-login" class="fixed inset-0 z-50 overflow-y-auto hidden no-print">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true" onclick="closeAdminLoginModal()">
+                <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <div class="inline-block align-bottom bg-slate-900 border border-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+                <div class="px-6 pt-6 pb-4">
+                    <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                        <h3 class="text-lg font-bold font-title text-slate-100 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-glow-indigo"></span>
+                            Administrator Tizimiga Kirish
+                        </h3>
+                        <button onclick="closeAdminLoginModal()" class="text-slate-400 hover:text-white transition">&times;</button>
+                    </div>
+                    
+                    <form onsubmit="submitAdminLogin(event)" class="mt-4 flex flex-col gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Foydalanuvchi nomi</label>
+                            <input type="text" id="admin-login-username" value="admin" required class="w-full bg-slate-950 border border-slate-850 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-indigo-500 transition font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Maxfiy parol</label>
+                            <input type="password" id="admin-login-password" required placeholder="Parolni kiriting..." class="w-full bg-slate-950 border border-slate-850 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-indigo-500 transition font-medium">
+                        </div>
+                        
+                        <div class="mt-4 flex gap-3">
+                            <button type="button" onclick="closeAdminLoginModal()" class="w-1/2 border border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-white font-bold py-3 rounded-xl text-sm transition">Bekor qilish</button>
+                            <button type="submit" class="w-1/2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg shadow-indigo-600/20">Kirish</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL 1: CHECK-IN (Kirish) -->
@@ -756,6 +808,7 @@
                                             <th class="py-2 px-3">Raqam</th>
                                             <th class="py-2 px-3">Ism</th>
                                             <th class="py-2 px-3 text-right">Muddati</th>
+                                            <th class="py-2 px-3 text-right">Amal</th>
                                         </tr>
                                     </thead>
                                     <tbody id="subscribers-table-body" class="divide-y divide-slate-900 font-medium"></tbody>
@@ -830,6 +883,7 @@
         let dailyMaxCap = {{ daily_max_cap }};
         let lostTicketPenalty = {{ lost_ticket_penalty }};
         let activeCheckOutTimer = null;
+        let isUserAdmin = {{ is_admin|yesno:"true,false" }};
         let isAnalyticsOpen = false;
         let isIsometric = false;
         
@@ -1651,18 +1705,54 @@
                         const statusClass = sub.is_valid ? 'text-emerald-400' : 'text-rose-500';
                         const statusText = sub.is_valid ? 'Faol' : 'Muddati o\'tgan';
                         
+                        let actionHtml = '';
+                        if (isUserAdmin) {
+                            actionHtml = `<td class="py-2.5 px-3 text-right">
+                                <button onclick="deleteSubscription(${sub.id}, '${sub.plate}')" class="text-rose-500 hover:text-rose-400 font-bold text-[10px] bg-rose-950/20 hover:bg-rose-900/30 px-2 py-0.5 rounded transition font-title">O'chirish</button>
+                            </td>`;
+                        } else {
+                            actionHtml = `<td class="py-2.5 px-3 text-right text-slate-600">-</td>`;
+                        }
+                        
                         tr.innerHTML = `
                             <td class="py-2.5 px-3 font-mono font-bold tracking-wide">${sub.plate}</td>
                             <td class="py-2.5 px-3 text-slate-400">${sub.owner_name}</td>
                             <td class="py-2.5 px-3 text-right tabular-nums ${statusClass}">${sub.expiry_date} (${statusText})</td>
+                            ${actionHtml}
                         `;
                         tbody.appendChild(tr);
                     });
                 });
         }
 
+        function deleteSubscription(subId, plate) {
+            if (!confirm(`Haqiqatan ham '${plate}' raqamli abonementni o'chirmoqchimisiz?`)) return;
+            
+            fetch(`/api/subscriptions/?id=${subId}&_=${Date.now()}`, {
+                method: 'DELETE',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(data.error, "error");
+                } else {
+                    showToast(data.message);
+                    fetchSubscriptionsList();
+                }
+            })
+            .catch(err => {
+                showToast("Abonementni o'chirishda xatolik.", "error");
+            });
+        }
+
         function submitAddSubscription(event) {
             event.preventDefault();
+            if (!isUserAdmin) {
+                showToast("Abonement qo'shish uchun avval administrator sifatida kiring!", "error");
+                openAdminLoginModal();
+                return;
+            }
             const plate = cleanPlate(document.getElementById('sub-plate').value);
             const owner_name = document.getElementById('sub-name').value.trim();
             const expiry_date = document.getElementById('sub-expiry').value;
@@ -1828,6 +1918,11 @@
 
         // MODAL 3: GLOBAL SETTINGS
         function openSettingsModal() {
+            if (!isUserAdmin) {
+                showToast("Tarif sozlamalarini o'zgartirish uchun avval administrator tizimiga kiring!", "error");
+                openAdminLoginModal();
+                return;
+            }
             const modal = document.getElementById('modal-settings');
             document.getElementById('settings-rate').value = hourlyRate;
             document.getElementById('settings-free-minutes').value = freeMinutes;
@@ -2031,6 +2126,79 @@
                 });
             }
         }
+
+        // ==================== ADMIN LOGIN/LOGOUT UI HANDLERS ====================
+        function openAdminLoginModal() {
+            document.getElementById('modal-admin-login').classList.remove('hidden');
+            document.getElementById('admin-login-username').focus();
+        }
+        function closeAdminLoginModal() {
+            document.getElementById('modal-admin-login').classList.add('hidden');
+            document.getElementById('admin-login-password').value = '';
+        }
+        function submitAdminLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('admin-login-username').value.trim();
+            const password = document.getElementById('admin-login-password').value.trim();
+            
+            fetch('/api/admin-login/', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(data.error, "error");
+                } else {
+                    showToast(data.message, "success");
+                    isUserAdmin = true;
+                    closeAdminLoginModal();
+                    
+                    // Update header widget
+                    document.getElementById('admin-status-dot').className = "w-1.5 h-1.5 rounded-full bg-emerald-400 animate-glow-green";
+                    document.getElementById('admin-username').textContent = data.username;
+                    document.getElementById('admin-auth-btn-container').innerHTML = `
+                        <button onclick="logoutAdmin()" class="text-indigo-400 hover:text-indigo-300 font-extrabold ml-2 border border-slate-750 hover:border-slate-700 px-2 py-0.5 rounded transition">Chiqish</button>
+                    `;
+                    
+                    // Refresh subscribers view
+                    fetchSubscriptionsList();
+                }
+            })
+            .catch(err => {
+                showToast("Tizimga kirishda xatolik yuz berdi.", "error");
+            });
+        }
+        
+        function logoutAdmin() {
+            if (!confirm("Administrator tizimidan chiqmoqchimisiz?")) return;
+            
+            fetch('/api/admin-logout/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                showToast(data.message);
+                isUserAdmin = false;
+                
+                // Update header widget
+                document.getElementById('admin-status-dot').className = "w-1.5 h-1.5 rounded-full bg-slate-500";
+                document.getElementById('admin-username').textContent = "Mehmon";
+                document.getElementById('admin-auth-btn-container').innerHTML = `
+                    <button onclick="openAdminLoginModal()" class="text-indigo-400 hover:text-indigo-300 font-extrabold ml-2 border border-slate-750 hover:border-slate-700 px-2 py-0.5 rounded transition">Kirish</button>
+                `;
+                
+                // Close settings modal if open
+                document.getElementById('modal-settings').classList.add('hidden');
+                
+                // Refresh subscribers view (hides Delete buttons)
+                fetchSubscriptionsList();
+            });
     </script>
 </body>
 </html>

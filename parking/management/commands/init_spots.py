@@ -123,4 +123,10 @@ class Command(BaseCommand):
                 sub.is_active = True
                 sub.save()
         
+        # 4. Create default superuser if it doesn't exist
+        from django.contrib.auth.models import User
+        if not User.objects.filter(username='admin').exists():
+            User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
+            self.stdout.write(self.style.SUCCESS("Superuser 'admin' created with password 'admin123'."))
+        
         self.stdout.write(self.style.SUCCESS("Database seeding completed successfully."))

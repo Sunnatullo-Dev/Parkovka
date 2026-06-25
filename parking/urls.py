@@ -16,4 +16,6 @@ urlpatterns = [
     path('api/active-shift/', views.api_active_shift, name='api_active_shift'),
     path('api/close-shift/', views.api_close_shift, name='api_close_shift'),
     path('api/subscriptions/', views.api_subscriptions, name='api_subscriptions'),
+    path('api/admin-login/', views.api_admin_login, name='api_admin_login'),
+    path('api/admin-logout/', views.api_admin_logout, name='api_admin_logout'),
 ]

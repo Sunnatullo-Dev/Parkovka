@@ -125,3 +125,37 @@ class CommercialParkingTests(TestCase):
         # Check fee
         _, amount = session.calculate_fee(10000.0, 0, 0, 0, 80000, 50000)
         self.assertEqual(amount, 0)
+
+    def test_admin_permissions_enforcement(self):
+        """Verifies admin permission restrictions on settings update and subscription changes."""
+        from django.contrib.auth.models import User
+        admin_user = User.objects.create_superuser('testadmin', 'admin@test.com', 'pass123')
+        
+        # Test 1: Update rate fails for guest
+        response = self.client.post(
+            '/api/update-rate/',
+            data=json.dumps({'hourly_rate': '15000'}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 403)
+
+        # Test 2: Update rate succeeds for admin
+        self.client.login(username='testadmin', password='pass123')
+        response = self.client.post(
+            '/api/update-rate/',
+            data=json.dumps({'hourly_rate': '15000'}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['settings']['hourly_rate'], 15000)
+
+        # Test 3: Delete subscription fails for guest after logout
+        self.client.logout()
+        response = self.client.delete(f"/api/subscriptions/?id={self.sub.id}")
+        self.assertEqual(response.status_code, 403)
+
+        # Test 4: Delete subscription succeeds for admin
+        self.client.login(username='testadmin', password='pass123')
+        response = self.client.delete(f"/api/subscriptions/?id={self.sub.id}")
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(ParkingSubscription.objects.filter(id=self.sub.id).exists())

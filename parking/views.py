@@ -7,6 +7,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
+from django.contrib.auth import authenticate, login, logout
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Sum, Count
@@ -39,6 +40,8 @@ def dashboard_view(request):
     context = get_all_settings()
     active_shift = get_active_shift()
     context['active_shift_guard'] = active_shift.guard_name if active_shift else None
+    context['is_admin'] = request.user.is_authenticated and request.user.is_staff
+    context['username'] = request.user.username if request.user.is_authenticated else None
     return render(request, 'parking/dashboard.html', context)
 
 @require_http_methods(["GET"])
@@ -468,6 +471,8 @@ def api_analytics_data(request):
 @require_http_methods(["POST"])
 def api_update_rate(request):
     """Updates the parking settings parameters."""
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return JsonResponse({'error': 'Ushbu amalni bajarish uchun administrator huquqi talab qilinadi.'}, status=403)
     try:
         data = json.loads(request.body)
         keys = ['hourly_rate', 'free_minutes', 'min_charge_amount', 'min_charge_duration', 'daily_max_cap', 'lost_ticket_penalty']
@@ -592,11 +597,11 @@ def api_close_shift(request):
 
 # ==================== NEW SUBSCRIPTION APIs ====================
 
-@require_http_methods(["GET", "POST"])
+@require_http_methods(["GET", "POST", "DELETE"])
 @csrf_exempt
 @never_cache
 def api_subscriptions(request):
-    """GET returns subscribers list. POST adds/renews a monthly subscription."""
+    """GET returns subscribers list. POST adds/renews. DELETE removes a subscription."""
     if request.method == "GET":
         subs = ParkingSubscription.objects.all().order_by('-expiry_date')
         data = [{
@@ -609,6 +614,8 @@ def api_subscriptions(request):
         return JsonResponse({'subscriptions': data})
         
     elif request.method == "POST":
+        if not request.user.is_authenticated or not request.user.is_staff:
+            return JsonResponse({'error': 'Ushbu amalni bajarish uchun administrator huquqi talab qilinadi.'}, status=403)
         try:
             data = json.loads(request.body)
             plate = data.get('plate', '').strip().upper()
@@ -651,3 +658,52 @@ def api_subscriptions(request):
             })
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+            
+    elif request.method == "DELETE":
+        if not request.user.is_authenticated or not request.user.is_staff:
+            return JsonResponse({'error': 'Ushbu amalni bajarish uchun administrator huquqi talab qilinadi.'}, status=403)
+        try:
+            sub_id = request.GET.get('id')
+            if not sub_id:
+                return JsonResponse({'error': 'Abonement ID kiritilishi shart.'}, status=400)
+            sub = ParkingSubscription.objects.get(id=sub_id)
+            plate = sub.plate
+            sub.delete()
+            return JsonResponse({'message': f"'{plate}' raqamli abonement muvaffaqiyatli o'chirildi."})
+        except ParkingSubscription.DoesNotExist:
+            return JsonResponse({'error': 'Abonement topilmadi.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_admin_login(request):
+    try:
+        data = json.loads(request.body)
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+        
+        if not username or not password:
+            return JsonResponse({'error': 'Foydalanuvchi nomi va parol kiritilishi shart.'}, status=400)
+            
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            if user.is_staff:
+                login(request, user)
+                return JsonResponse({
+                    'message': 'Tizimga muvaffaqiyatli kirildi.',
+                    'username': user.username,
+                    'is_admin': True
+                })
+            else:
+                return JsonResponse({'error': 'Ushbu panelga faqat administratorlar kira oladi.'}, status=403)
+        else:
+            return JsonResponse({'error': 'Foydalanuvchi nomi yoki parol noto\'g\'ri.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_admin_logout(request):
+    logout(request)
+    return JsonResponse({'message': 'Tizimdan muvaffaqiyatli chiqildi.'})
