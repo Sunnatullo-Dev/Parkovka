@@ -340,16 +340,56 @@
                 <div id="grid-3d-inner" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <!-- Section A -->
                     <div class="bg-slate-900/30 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6">
-                        <h3 class="text-sm font-bold font-title uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
+                        <h3 class="text-sm font-bold font-title uppercase tracking-wider text-slate-400 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <span>A Sektor (Kassa yaqinida)</span>
+                            
+                            <!-- Entrance Gate Simulator -->
+                            <div class="flex items-center gap-3 bg-slate-950/60 border border-slate-850 px-3 py-1.5 rounded-xl text-xs select-none">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[9px] uppercase font-bold text-slate-500">Svetofor</span>
+                                    <div class="flex flex-col gap-0.5 bg-slate-900 p-0.5 rounded-full border border-slate-800" style="width: 10px;">
+                                        <span id="gate-a-light-red" class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-glow-red"></span>
+                                        <span id="gate-a-light-green" class="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
+                                    </div>
+                                </div>
+                                <div class="h-4 w-px bg-slate-800"></div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[9px] uppercase font-bold text-slate-500">Shlagbaum</span>
+                                    <svg viewBox="0 0 100 15" class="w-16 h-3">
+                                        <rect x="5" y="0" width="8" height="15" rx="1.5" fill="#475569" />
+                                        <rect id="gate-a-arm" x="12" y="3" width="80" height="4" rx="1" fill="#ef4444" class="origin-left transition-all duration-1000" style="transform: rotate(0deg);" />
+                                    </svg>
+                                    <span id="gate-a-status" class="text-[9px] font-black text-rose-400 uppercase tracking-wider font-mono">Yopiq</span>
+                                </div>
+                            </div>
                         </h3>
                         <div id="grid-section-A" class="grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
                     </div>
 
                     <!-- Section B -->
                     <div class="bg-slate-900/30 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6">
-                        <h3 class="text-sm font-bold font-title uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
+                        <h3 class="text-sm font-bold font-title uppercase tracking-wider text-slate-400 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <span>B Sektor (Chiqish yaqinida)</span>
+                            
+                            <!-- Exit Gate Simulator -->
+                            <div class="flex items-center gap-3 bg-slate-950/60 border border-slate-850 px-3 py-1.5 rounded-xl text-xs select-none">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[9px] uppercase font-bold text-slate-500">Svetofor</span>
+                                    <div class="flex flex-col gap-0.5 bg-slate-900 p-0.5 rounded-full border border-slate-800" style="width: 10px;">
+                                        <span id="gate-b-light-red" class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-glow-red"></span>
+                                        <span id="gate-b-light-green" class="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
+                                    </div>
+                                </div>
+                                <div class="h-4 w-px bg-slate-800"></div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[9px] uppercase font-bold text-slate-500">Shlagbaum</span>
+                                    <svg viewBox="0 0 100 15" class="w-16 h-3">
+                                        <rect x="5" y="0" width="8" height="15" rx="1.5" fill="#475569" />
+                                        <rect id="gate-b-arm" x="12" y="3" width="80" height="4" rx="1" fill="#ef4444" class="origin-left transition-all duration-1000" style="transform: rotate(0deg);" />
+                                    </svg>
+                                    <span id="gate-b-status" class="text-[9px] font-black text-rose-400 uppercase tracking-wider font-mono">Yopiq</span>
+                                </div>
+                            </div>
                         </h3>
                         <div id="grid-section-B" class="grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
                     </div>
@@ -1450,6 +1490,7 @@
                     showToast(data.message);
                     closeCheckInModal();
                     fetchSpots();
+                    triggerGateAnimation('a');
                     
                     // Voice announce Check-in
                     speakVoice(`Kirish: ${data.plate}. Joy: ${data.spot_code}`);
@@ -1593,6 +1634,7 @@
                     
                     closeCheckOutModal();
                     fetchSpots();
+                    triggerGateAnimation('b');
                     
                     speakVoice(`To'lov qabul qilindi. Summa ${data.amount} so'm. Oq yo'l!`);
                     
@@ -2103,6 +2145,7 @@
                         showToast(`LPR: ${data.plate} mashina ${data.spot_code} joyiga kiritildi (Auto).`);
                         speakVoice(`Avto Kirish: ${data.plate}. Joy: ${data.spot_code}`);
                         fetchSpots();
+                        triggerGateAnimation('a');
                     }
                 });
             } else if (occupiedSpots.length > 0) {
@@ -2122,6 +2165,7 @@
                         showToast(`Avto Chiqish: ${data.plate} uchun to'lov olindi: ${formatUZS(data.amount)}.`);
                         speakVoice(`Avto To'lov qabul qilindi. Summa ${data.amount} so'm.`);
                         fetchSpots();
+                        triggerGateAnimation('b');
                     }
                 });
             }
@@ -2199,6 +2243,34 @@
                 // Refresh subscribers view (hides Delete buttons)
                 fetchSubscriptionsList();
             });
+        }
+
+        function triggerGateAnimation(gateName) {
+            const lightRed = document.getElementById(`gate-${gateName}-light-red`);
+            const lightGreen = document.getElementById(`gate-${gateName}-light-green`);
+            const statusText = document.getElementById(`gate-${gateName}-status`);
+            const arm = document.getElementById(`gate-${gateName}-arm`);
+            
+            if (!lightRed || !lightGreen || !statusText || !arm) return;
+            
+            // Open gate
+            lightRed.className = "w-1.5 h-1.5 rounded-full bg-slate-700";
+            lightGreen.className = "w-1.5 h-1.5 rounded-full bg-emerald-400 animate-glow-green";
+            statusText.className = "text-[9px] font-black text-emerald-400 uppercase tracking-wider font-mono";
+            statusText.textContent = "Ochiq";
+            arm.style.transform = "rotate(-80deg)";
+            arm.setAttribute('fill', '#10b981');
+            
+            // Close after 4 seconds
+            setTimeout(() => {
+                lightRed.className = "w-1.5 h-1.5 rounded-full bg-rose-500 animate-glow-red";
+                lightGreen.className = "w-1.5 h-1.5 rounded-full bg-slate-700";
+                statusText.className = "text-[9px] font-black text-rose-400 uppercase tracking-wider font-mono";
+                statusText.textContent = "Yopiq";
+                arm.style.transform = "rotate(0deg)";
+                arm.setAttribute('fill', '#ef4444');
+            }, 4000);
+        }
     </script>
 </body>
 </html>
