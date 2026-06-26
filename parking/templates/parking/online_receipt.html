@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parkovka - Onlayn Kvitansiya</title>
+    <!-- Google Fonts & Tailwind CDN -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        title: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 100%);
+            min-height: 100vh;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+        .glow-amber {
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.2);
+        }
+        .glow-emerald {
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.25);
+        }
+    </style>
+</head>
+<body class="text-slate-100 flex items-center justify-center p-4 sm:p-6 antialiased">
+
+    <div class="w-full max-w-md bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl shadow-black/50">
+        <!-- Receipt Header -->
+        <div class="px-6 pt-8 pb-6 border-b border-dashed border-slate-800 text-center relative">
+            <!-- Brand / Logo -->
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 mx-auto mb-4">
+                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                </svg>
+            </div>
+            
+            <h2 class="text-lg font-black font-title tracking-widest text-slate-300 uppercase">PARKOVKA KVITANSIYASI</h2>
+            <p class="text-xs text-slate-500 font-semibold mt-1">Sessiya ID: #PK-{{ session.id }}</p>
+            
+            <!-- Dynamic status badge -->
+            <div class="mt-4 flex justify-center">
+                {% if session.is_active %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20 glow-amber">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                    FAQOL (PARKOVKA HUDUDIDA)
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 glow-emerald">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    YAKUNLANGAN (TO'LOV QILINGAN)
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="p-8 text-center">
+            <div class="text-rose-500 text-sm font-bold">{{ error }}</div>
+        </div>
+        {% else %}
+        <!-- Live ticking card for active sessions -->
+        {% if session.is_active %}
+        <div class="px-6 py-5 bg-indigo-950/20 border-b border-slate-850 text-center">
+            <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest leading-none">Real-Vaqtda Hisoblash</span>
+            <div id="live-amount" class="text-3xl font-black font-title text-emerald-400 mt-1 tabular-nums">0 so'm</div>
+            <div id="live-duration" class="text-xs text-slate-400 font-medium mt-0.5 tabular-nums">0 daqiqa</div>
+        </div>
+        {% endif %}
+
+        <!-- Receipt body details -->
+        <div class="p-6 flex flex-col gap-4">
+            <div class="grid grid-cols-2 gap-y-3.5 text-xs">
+                <!-- Plate -->
+                <div class="text-slate-400 font-medium">Davlat Raqami:</div>
+                <div class="text-right font-black font-title text-indigo-300 uppercase tracking-wider text-sm" id="receipt-plate">{{ session.plate }}</div>
+
+                <!-- Spot -->
+                <div class="text-slate-400 font-medium">Parking joyi:</div>
+                <div class="text-right font-bold text-slate-200">{{ session.spot.code }} ({{ session.spot.get_spot_type_display }})</div>
+
+                <!-- Session Type -->
+                <div class="text-slate-400 font-medium">Tarif turi:</div>
+                <div class="text-right font-semibold text-slate-200">
+                    {% if session.session_type == 'SUBSCRIBED' %}
+                    <span class="text-emerald-400 font-bold">Oylik Abonement</span>
+                    {% else %}
+                    Standart (To'lovli)
+                    {% endif %}
+                </div>
+
+                <!-- Entry Time -->
+                <div class="text-slate-400 font-medium">Kirish vaqti:</div>
+                <div class="text-right font-mono text-slate-300">{{ session.entry_time|date:"d.m.Y H:i:s" }}</div>
+
+                <!-- Exit Time -->
+                <div class="text-slate-400 font-medium">Chiqish vaqti:</div>
+                <div class="text-right font-mono text-slate-300">
+                    {% if session.exit_time %}
+                        {{ session.exit_time|date:"d.m.Y H:i:s" }}
+                    {% else %}
+                        <span class="text-amber-500 font-bold italic">Ichkarida...</span>
+                    {% endif %}
+                </div>
+
+                {% if not session.is_active %}
+                <!-- Final Duration -->
+                <div class="text-slate-400 font-medium">Turgan vaqti:</div>
+                <div class="text-right font-bold text-slate-200" id="final-duration">{{ session.total_minutes|floatformat:0 }} daqiqa</div>
+
+                <!-- Final Amount -->
+                <div class="text-slate-400 font-semibold text-sm">Jami To'lov:</div>
+                <div class="text-right font-black font-title text-lg text-emerald-400" id="final-amount">{{ session.amount|floatformat:0 }} so'm</div>
+                {% endif %}
+            </div>
+
+            <!-- Pricing Policy details collapsed/footer -->
+            <div class="mt-4 bg-slate-950/40 border border-slate-850 rounded-2xl p-4 text-[10px] text-slate-500 flex flex-col gap-1">
+                <div class="flex justify-between">
+                    <span>Asosiy tarif:</span>
+                    <span class="font-bold text-slate-400">{{ hourly_rate|floatformat:0 }} so'm/soat</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Joy koeffitsiyenti:</span>
+                    <span class="font-bold text-slate-400">{{ multiplier }}x</span>
+                </div>
+                {% if settings.free_minutes > 0 %}
+                <div class="flex justify-between">
+                    <span>Bepul sinov daqiqalari:</span>
+                    <span class="font-bold text-emerald-500">{{ settings.free_minutes|floatformat:0 }} daqiqa</span>
+                </div>
+                {% endif %}
+                <div class="flex justify-between">
+                    <span>Kunlik eng yuqori chegara (Cap):</span>
+                    <span class="font-bold text-slate-400">{{ settings.daily_max_cap|floatformat:0 }} so'm</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ticket barcode look -->
+        <div class="px-6 py-6 border-t border-dashed border-slate-800 text-center">
+            <div class="flex justify-center gap-1 opacity-20 h-10 w-44 mx-auto mb-2 overflow-hidden">
+                <div class="bg-white w-0.5"></div><div class="bg-white w-1"></div><div class="bg-white w-2"></div>
+                <div class="bg-white w-0.5"></div><div class="bg-white w-3"></div><div class="bg-white w-1"></div>
+                <div class="bg-white w-0.5"></div><div class="bg-white w-2"></div><div class="bg-white w-1"></div>
+                <div class="bg-white w-0.5"></div><div class="bg-white w-1"></div><div class="bg-white w-2"></div>
+                <div class="bg-white w-0.5"></div><div class="bg-white w-3"></div><div class="bg-white w-1"></div>
+            </div>
+            <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Oq yo'l! Xavfsiz harakatlaning.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Active session ticking script -->
+    {% if session.is_active and not error %}
+    <script>
+        const entryTime = new Date("{{ session.entry_time.isoformat }}");
+        const hourlyRate = {{ hourly_rate }};
+        const freeMinutes = {{ settings.free_minutes }};
+        const minChargeAmount = {{ settings.min_charge_amount }};
+        const minChargeDuration = {{ settings.min_charge_duration }};
+        const dailyMaxCap = {{ settings.daily_max_cap }};
+        const multiplier = {{ multiplier }};
+        const sessionType = "{{ session.session_type }}";
+        const isLostTicket = {{ session.is_lost_ticket|yesno:"true,false" }};
+        const lostTicketPenalty = {{ settings.lost_ticket_penalty }};
+
+        // Format Plate Number
+        const plateEl = document.getElementById('receipt-plate');
+        if (plateEl) {
+            let val = plateEl.textContent.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (val.length >= 7) {
+                plateEl.textContent = val.substring(0, 2) + " | " + val.substring(2);
+            }
+        }
+
+        function calculateLiveFee() {
+            if (sessionType === 'SUBSCRIBED') {
+                return { minutes: 0, amount: 0 };
+            }
+            if (isLostTicket) {
+                return { minutes: 0, amount: lostTicketPenalty };
+            }
+
+            const now = new Date();
+            const durationMs = Math.max(0, now.getTime() - entryTime.getTime());
+            const minutes = durationMs / 60000.0;
+
+            let calculatedAmount = 0.0;
+            
+            if (minutes <= freeMinutes) {
+                calculatedAmount = 0.0;
+            } else {
+                const days = Math.floor(minutes / 1440);
+                const remMinutes = minutes % 1440;
+                
+                let remCharge = 0.0;
+                if (remMinutes <= minChargeDuration) {
+                    remCharge = minChargeAmount;
+                } else {
+                    const extraMinutes = remMinutes - minChargeDuration;
+                    const ratePerMinute = hourlyRate / 60.0;
+                    remCharge = minChargeAmount + (extraMinutes * ratePerMinute);
+                }
+                
+                const remChargeCapped = Math.min(remCharge, dailyMaxCap);
+                const baseAmount = (days * dailyMaxCap) + remChargeCapped;
+                calculatedAmount = baseAmount * multiplier;
+            }
+
+            // Round to nearest 100 UZS
+            const roundedAmount = Math.round(calculatedAmount / 100.0) * 100;
+            return {
+                minutes: minutes,
+                amount: roundedAmount
+            };
+        }
+
+        function formatUZS(val) {
+            return new Intl.NumberFormat('uz-UZ').format(val) + " so'm";
+        }
+
+        function updateTick() {
+            const res = calculateLiveFee();
+            
+            // Format duration text
+            let durationText = '';
+            if (res.minutes >= 60) {
+                const hrs = Math.floor(res.minutes / 60);
+                const mins = Math.round(res.minutes % 60);
+                durationText = `${hrs} soat ${mins} daqiqa`;
+            } else {
+                durationText = `${Math.ceil(res.minutes)} daqiqa`;
+            }
+
+            document.getElementById('live-amount').textContent = formatUZS(res.amount);
+            document.getElementById('live-duration').textContent = durationText;
+        }
+
+        updateTick();
+        setInterval(updateTick, 1000);
+    </script>
+    {% endif %}
+</body>
+</html>

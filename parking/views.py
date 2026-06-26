@@ -707,3 +707,33 @@ def api_admin_login(request):
 def api_admin_logout(request):
     logout(request)
     return JsonResponse({'message': 'Tizimdan muvaffaqiyatli chiqildi.'})
+
+@never_cache
+def online_receipt_view(request, session_id):
+    """Renders a public online receipt status page with live ticking calculations."""
+    try:
+        session = ParkingSession.objects.select_related('spot').get(id=session_id)
+        settings = get_all_settings()
+        
+        # Calculate current fee
+        minutes, amount = session.calculate_fee(
+            hourly_rate=settings['hourly_rate'],
+            free_minutes=settings['free_minutes'],
+            min_charge_amount=settings['min_charge_amount'],
+            min_charge_duration=settings['min_charge_duration'],
+            daily_max_cap=settings['daily_max_cap'],
+            lost_ticket_penalty=settings['lost_ticket_penalty']
+        )
+        
+        context = {
+            'session': session,
+            'settings': settings,
+            'current_time': timezone.now(),
+            'total_minutes': minutes,
+            'amount': amount,
+            'hourly_rate': settings['hourly_rate'],
+            'multiplier': session.spot.get_multiplier()
+        }
+        return render(request, 'parking/online_receipt.html', context)
+    except ParkingSession.DoesNotExist:
+        return render(request, 'parking/online_receipt.html', {'error': 'Sessiya topilmadi.'}, status=404)

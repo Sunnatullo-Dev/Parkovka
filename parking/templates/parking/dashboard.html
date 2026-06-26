@@ -769,6 +769,12 @@
                             <div id="receipt-total-amount" class="text-xl font-bold text-slate-900 mt-1">35,000 so'm</div>
                         </div>
 
+                        <!-- QR Code for Online Receipt Link -->
+                        <div id="receipt-qr-container" class="flex flex-col items-center gap-1 mt-3 border-t border-dashed border-slate-400 pt-3">
+                            <img id="receipt-qr-image" src="" class="w-24 h-24 border border-slate-200 p-0.5" alt="QR Code" />
+                            <p class="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Kvitansiyani onlayn tekshirish</p>
+                        </div>
+
                         <div class="flex flex-col items-center gap-1 mt-2">
                             <div class="w-full flex items-center justify-center gap-0.5 h-8 bg-slate-950 p-1">
                                 <div class="w-0.5 h-full bg-white"></div>
@@ -1497,6 +1503,7 @@
                     
                     openReceiptPreviewModal({
                         type: 'checkin',
+                        sessionId: data.session_id,
                         ticketNo: `#PK-IN-${data.session_id}`,
                         plate: data.plate,
                         spot: `${data.spot_code} (${data.spot_type_display})`,
@@ -1640,6 +1647,7 @@
                     
                     openReceiptPreviewModal({
                         type: 'checkout',
+                        sessionId: data.session_id,
                         ticketNo: `#PK-OUT-${data.session_id}`,
                         plate: data.plate,
                         spot: `${data.spot_code}`,
@@ -1900,6 +1908,11 @@
             const modal = document.getElementById('modal-receipt-preview');
             
             document.getElementById('receipt-no').textContent = receiptData.ticketNo;
+            
+            // Set QR code link pointing to online receipt page
+            const sId = receiptData.sessionId || receiptData.ticketNo.split('-').pop();
+            const receiptUrl = `${window.location.origin}/receipt/${sId}/`;
+            document.getElementById('receipt-qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(receiptUrl)}`;
             
             let formatted = receiptData.plate;
             if (receiptData.plate.length >= 7) {

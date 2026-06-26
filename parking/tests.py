@@ -159,3 +159,33 @@ class CommercialParkingTests(TestCase):
         response = self.client.delete(f"/api/subscriptions/?id={self.sub.id}")
         self.assertEqual(response.status_code, 200)
         self.assertFalse(ParkingSubscription.objects.filter(id=self.sub.id).exists())
+
+    def test_online_receipt_view(self):
+        """Verifies public online receipt page returns 200 for active/inactive sessions, 404 for invalid."""
+        # Create active session
+        session = ParkingSession.objects.create(
+            spot=self.spot_std,
+            plate="01X999XX",
+            entry_time=timezone.now() - timedelta(minutes=15)
+        )
+        
+        # Test 1: Active session receipt page
+        response = self.client.get(f'/receipt/{session.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "01X999XX")
+        self.assertContains(response, "FAQOL")
+
+        # Test 2: Closed session receipt page
+        session.is_active = False
+        session.exit_time = timezone.now()
+        session.total_minutes = 15.0
+        session.amount = Decimal("3000.00")
+        session.save()
+        
+        response = self.client.get(f'/receipt/{session.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "YAKUNLANGAN")
+        
+        # Test 3: Invalid session receipt page returns 404
+        response = self.client.get('/receipt/99999/')
+        self.assertEqual(response.status_code, 404)
