@@ -129,3 +129,20 @@ class ParkingSetting(models.Model):
 
     def __str__(self):
         return f"{self.key}: {self.value}"
+
+class ParkingNotification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('TELEGRAM', 'Telegram Bot'),
+        ('SMS', 'SMS Gateway'),
+    ]
+    
+    notification_type = models.CharField(max_length=15, choices=NOTIFICATION_TYPES)
+    recipient = models.CharField(max_length=50)
+    message = models.TextField()
+    sent_time = models.DateTimeField(default=timezone.now)
+    
+    def __str__(self):
+        return f"[{self.get_notification_type_display()}] to {self.recipient} at {self.sent_time}"
+        
+    class Meta:
+        ordering = ['-sent_time']

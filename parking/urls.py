@@ -19,4 +19,5 @@ urlpatterns = [
     path('api/admin-login/', views.api_admin_login, name='api_admin_login'),
     path('api/admin-logout/', views.api_admin_logout, name='api_admin_logout'),
     path('receipt/<int:session_id>/', views.online_receipt_view, name='online_receipt'),
+    path('api/notifications/', views.api_notifications, name='api_notifications'),
 ]

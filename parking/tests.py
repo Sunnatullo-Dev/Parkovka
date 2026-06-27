@@ -189,3 +189,44 @@ class CommercialParkingTests(TestCase):
         # Test 3: Invalid session receipt page returns 404
         response = self.client.get('/receipt/99999/')
         self.assertEqual(response.status_code, 404)
+
+    def test_notification_logging_and_api(self):
+        """Verifies that notifications are logged to DB and fetched via API endpoint."""
+        from parking.models import ParkingNotification
+        
+        # Open shift
+        shift = ParkingShift.objects.create(guard_name="Sunnatulla", is_active=True)
+        
+        # 1. Test check-in notification
+        response = self.client.post(
+            '/api/start-session/',
+            data=json.dumps({'spot_code': 'A1', 'plate': '01K111KK'}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        session_id = response.json()['session_id']
+        
+        # Check DB log for Telegram check-in notification
+        notif_in = ParkingNotification.objects.filter(notification_type='TELEGRAM', recipient='01K111KK')
+        self.assertTrue(notif_in.exists())
+        self.assertIn("KIRISH QAYD ETILDI", notif_in.first().message)
+        
+        # 2. Test check-out notification
+        response = self.client.post(
+            '/api/end-session/',
+            data=json.dumps({'session_id': session_id}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        
+        # Check DB log for SMS check-out notification
+        notif_out = ParkingNotification.objects.filter(notification_type='SMS', recipient='01K111KK')
+        self.assertTrue(notif_out.exists())
+        self.assertIn("TO'LOV TASDIQLANDI", notif_out.first().message)
+        
+        # 3. Fetch notifications API
+        response = self.client.get('/api/notifications/')
+        self.assertEqual(response.status_code, 200)
+        notifs_data = response.json()['notifications']
+        self.assertGreaterEqual(len(notifs_data), 2)
+        self.assertEqual(notifs_data[0]['recipient'], '01K111KK')

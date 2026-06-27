@@ -1,5 +1,7 @@
 import json
 import csv
+import urllib.request
+import urllib.parse
 from decimal import Decimal
 from datetime import datetime, timedelta
 from django.shortcuts import render
@@ -12,7 +14,7 @@ from django.utils import timezone
 from django.db import transaction
 from django.db.models import Sum, Count
 
-from parking.models import ParkingSpot, ParkingSession, ParkingSetting, ParkingSubscription, ParkingShift
+from parking.models import ParkingSpot, ParkingSession, ParkingSetting, ParkingSubscription, ParkingShift, ParkingNotification
 
 # Helpers to get settings
 def get_setting(key, default_val):
@@ -31,6 +33,35 @@ def get_all_settings():
         'daily_max_cap': float(get_setting('daily_max_cap', '80000')),
         'lost_ticket_penalty': float(get_setting('lost_ticket_penalty', '50000')),
     }
+
+def dispatch_notification(notification_type, recipient, message):
+    """Saves notification in DB and sends real Telegram message if token/chat_id are configured."""
+    try:
+        # 1. Create DB log
+        ParkingNotification.objects.create(
+            notification_type=notification_type,
+            recipient=recipient,
+            message=message
+        )
+        
+        # 2. Real Telegram Bot dispatch if credentials exist in settings
+        if notification_type == 'TELEGRAM':
+            bot_token = get_setting('telegram_bot_token', '')
+            chat_id = get_setting('telegram_chat_id', '')
+            
+            if bot_token and chat_id:
+                url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+                payload = urllib.parse.urlencode({
+                    'chat_id': chat_id,
+                    'text': message,
+                    'parse_mode': 'Markdown'
+                }).encode('utf-8')
+                
+                req = urllib.request.Request(url, data=payload, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=5) as response:
+                    pass
+    except Exception as e:
+        print(f"Notification dispatch error: {e}")
 
 def get_active_shift():
     return ParkingShift.objects.filter(is_active=True).first()
@@ -159,6 +190,20 @@ def api_start_session(request):
             spot.is_occupied = True
             spot.save()
             
+            try:
+                receipt_url = f"{request.scheme}://{request.get_host()}/receipt/{session.id}/"
+                msg = (
+                    f"🚗 *KIRISH QAYD ETILDI*\n\n"
+                    f"• *Davlat raqami:* {session.plate}\n"
+                    f"• *Parking joyi:* {spot.code} ({spot.get_spot_type_display()})\n"
+                    f"• *Kirish vaqti:* {timezone.localtime(session.entry_time).strftime('%d.%m.%Y %H:%M:%S')}\n"
+                    f"• *Tarif turi:* {session.get_session_type_display()}\n\n"
+                    f"🔗 [Onlayn Kvitansiyani ko'rish]({receipt_url})"
+                )
+                dispatch_notification('TELEGRAM', session.plate, msg)
+            except Exception as e:
+                print(f"Failed to queue checkin notification: {e}")
+            
             return JsonResponse({
                 'message': message,
                 'session_id': session.id,
@@ -282,6 +327,20 @@ def api_end_session(request):
             spot = session.spot
             spot.is_occupied = False
             spot.save()
+            
+            try:
+                msg = (
+                    f"💳 *TO'LOV TASDIQLANDI*\n\n"
+                    f"• *Davlat raqami:* {session.plate}\n"
+                    f"• *Parking joyi:* {spot.code}\n"
+                    f"• *Jami turgan vaqti:* {round(minutes)} daqiqa\n"
+                    f"• *To'langan summa:* {int(amount):,} so'm\n"
+                    f"• *Chiqish vaqti:* {timezone.localtime(session.exit_time).strftime('%d.%m.%Y %H:%M:%S')}\n\n"
+                    f"👋 *Oq yo'l, xavfsiz safar tilaymiz!*"
+                )
+                dispatch_notification('SMS', session.plate, msg)
+            except Exception as e:
+                print(f"Failed to queue checkout notification: {e}")
             
             return JsonResponse({
                 'message': 'Sessiya muvaffaqiyatli yakunlandi.',
@@ -603,6 +662,30 @@ def api_close_shift(request):
 def api_subscriptions(request):
     """GET returns subscribers list. POST adds/renews. DELETE removes a subscription."""
     if request.method == "GET":
+        # Check and warn for expiring subscriptions
+        try:
+            today = timezone.localdate()
+            target_expiry = today + timedelta(days=3)
+            expiring_subs = ParkingSubscription.objects.filter(is_active=True, expiry_date=target_expiry)
+            for sub in expiring_subs:
+                warning_msg = (
+                    f"⚠️ *ABONEMENT MUDDATI TUGAMOQDA*\n\n"
+                    f"• *Davlat raqami:* {sub.plate}\n"
+                    f"• *Mijoz:* {sub.owner_name}\n"
+                    f"• *Tugash sanasi:* {sub.expiry_date.strftime('%d.%m.%Y')}\n\n"
+                    f"Iltimos, oylik abonementni o'z vaqtida uzaytiring."
+                )
+                already_sent = ParkingNotification.objects.filter(
+                    notification_type='TELEGRAM',
+                    recipient=sub.plate,
+                    message=warning_msg,
+                    sent_time__gte=timezone.now() - timedelta(hours=24)
+                ).exists()
+                if not already_sent:
+                    dispatch_notification('TELEGRAM', sub.plate, warning_msg)
+        except Exception as e:
+            print(f"Failed to check expiring subscriptions: {e}")
+
         subs = ParkingSubscription.objects.all().order_by('-expiry_date')
         data = [{
             'id': s.id,
@@ -737,3 +820,18 @@ def online_receipt_view(request, session_id):
         return render(request, 'parking/online_receipt.html', context)
     except ParkingSession.DoesNotExist:
         return render(request, 'parking/online_receipt.html', {'error': 'Sessiya topilmadi.'}, status=404)
+
+@require_http_methods(["GET"])
+@never_cache
+def api_notifications(request):
+    """Returns the last 15 sent notifications for the dashboard feed logs."""
+    notifs = ParkingNotification.objects.all().order_by('-sent_time')[:15]
+    data = [{
+        'id': n.id,
+        'notification_type': n.notification_type,
+        'notification_type_display': n.get_notification_type_display(),
+        'recipient': n.recipient,
+        'message': n.message,
+        'sent_time': n.sent_time.isoformat()
+    } for n in notifs]
+    return JsonResponse({'notifications': data})
