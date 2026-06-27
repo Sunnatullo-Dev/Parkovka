@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
+from parking.constants import PARKING_SETTING_DEFAULTS
 from parking.models import ParkingSpot, ParkingSetting, ParkingSubscription
 
 class Command(BaseCommand):
@@ -8,53 +9,16 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # 1. Initialize settings
-        settings_to_seed = [
-            {
-                'key': 'hourly_rate',
-                'value': '10000',
-                'description': 'Parking fee rate per hour in UZS'
-            },
-            {
-                'key': 'free_minutes',
-                'value': '0',
-                'description': 'Number of initial minutes that are free of charge (0 = bill immediately)'
-            },
-            {
-                'key': 'min_charge_amount',
-                'value': '0',
-                'description': 'Minimum charge amount in UZS (0 = minute billing)'
-            },
-            {
-                'key': 'min_charge_duration',
-                'value': '0',
-                'description': 'Minimum charge duration in minutes'
-            },
-            {
-                'key': 'daily_max_cap',
-                'value': '80000',
-                'description': 'Maximum parking charge amount per 24 hours in UZS'
-            },
-            {
-                'key': 'lost_ticket_penalty',
-                'value': '50000',
-                'description': 'Flat rate penalty fee for losing check-in ticket in UZS'
-            }
-        ]
-
-        for setting_data in settings_to_seed:
+        for key, (value, description) in PARKING_SETTING_DEFAULTS.items():
             setting, created = ParkingSetting.objects.get_or_create(
-                key=setting_data['key'],
-                defaults={
-                    'value': setting_data['value'],
-                    'description': setting_data['description']
-                }
+                key=key,
+                defaults={'value': value, 'description': description},
             )
-            # Update to make sure it matches seeding defaults (especially free_minutes=0)
             if not created:
-                setting.value = setting_data['value']
-                setting.description = setting_data['description']
+                setting.value = value
+                setting.description = description
                 setting.save()
-            self.stdout.write(self.style.SUCCESS(f"Setting '{setting_data['key']}' initialized to '{setting_data['value']}'."))
+            self.stdout.write(self.style.SUCCESS(f"Setting '{key}' initialized to '{value}'."))
 
         # 2. Initialize spots
         vip_spots = {'A9', 'A10', 'B9', 'B10'}

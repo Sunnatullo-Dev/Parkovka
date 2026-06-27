@@ -1,7 +1,5 @@
 import json
 import csv
-import urllib.request
-import urllib.parse
 from decimal import Decimal
 from datetime import datetime, timedelta
 from django.shortcuts import render
@@ -12,60 +10,12 @@ from django.views.decorators.cache import never_cache
 from django.contrib.auth import authenticate, login, logout
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Sum, Count
+from django.db.models import Sum
+from django.db.models.functions import TruncDate
 
-from parking.models import ParkingSpot, ParkingSession, ParkingSetting, ParkingSubscription, ParkingShift, ParkingNotification
-
-# Helpers to get settings
-def get_setting(key, default_val):
-    try:
-        setting = ParkingSetting.objects.get(key=key)
-        return setting.value
-    except ParkingSetting.DoesNotExist:
-        return default_val
-
-def get_all_settings():
-    return {
-        'hourly_rate': float(get_setting('hourly_rate', '10000')),
-        'free_minutes': float(get_setting('free_minutes', '0')),
-        'min_charge_amount': float(get_setting('min_charge_amount', '0')),
-        'min_charge_duration': float(get_setting('min_charge_duration', '0')),
-        'daily_max_cap': float(get_setting('daily_max_cap', '80000')),
-        'lost_ticket_penalty': float(get_setting('lost_ticket_penalty', '50000')),
-    }
-
-def dispatch_notification(notification_type, recipient, message):
-    """Saves notification in DB and sends real Telegram message if token/chat_id are configured."""
-    try:
-        # 1. Create DB log
-        ParkingNotification.objects.create(
-            notification_type=notification_type,
-            recipient=recipient,
-            message=message
-        )
-        
-        # 2. Real Telegram Bot dispatch if credentials exist in settings
-        if notification_type == 'TELEGRAM':
-            bot_token = get_setting('telegram_bot_token', '')
-            chat_id = get_setting('telegram_chat_id', '')
-            
-            if bot_token and chat_id:
-                url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-                payload = urllib.parse.urlencode({
-                    'chat_id': chat_id,
-                    'text': message,
-                    'parse_mode': 'Markdown'
-                }).encode('utf-8')
-                
-                req = urllib.request.Request(url, data=payload, headers={'User-Agent': 'Mozilla/5.0'})
-                with urllib.request.urlopen(req, timeout=5) as response:
-                    pass
-    except Exception as e:
-        print(f"Notification dispatch error: {e}")
-
-def get_active_shift():
-    return ParkingShift.objects.filter(is_active=True).first()
-
+from parking.constants import NUMERIC_SETTING_KEYS
+from parking.models import ParkingSpot, ParkingSession, ParkingSetting, ParkingSubscription, ParkingNotification
+from parking.services import get_all_settings, dispatch_notification, get_active_shift
 def dashboard_view(request):
     """Renders the main dashboard page."""
     context = get_all_settings()
@@ -83,7 +33,10 @@ def api_spots(request):
     spots_data = []
     
     # Pre-fetch active sessions to join active plate info with spots
-    active_sessions = {s.spot_id: s for s in ParkingSession.objects.filter(is_active=True)}
+    active_sessions = {
+        s.spot_id: s
+        for s in ParkingSession.objects.filter(is_active=True).select_related('spot')
+    }
     settings = get_all_settings()
     hourly_rate = settings['hourly_rate']
     
@@ -241,21 +194,8 @@ def api_calculate_fee(request):
             })
             
         # Temporarily mock lost ticket if parameter matches
-        orig_lost = session.is_lost_ticket
-        if is_lost_param:
-            session.is_lost_ticket = True
-            
-        minutes, amount = session.calculate_fee(
-            hourly_rate=settings['hourly_rate'],
-            free_minutes=settings['free_minutes'],
-            min_charge_amount=settings['min_charge_amount'],
-            min_charge_duration=settings['min_charge_duration'],
-            daily_max_cap=settings['daily_max_cap'],
-            lost_ticket_penalty=settings['lost_ticket_penalty']
-        )
-        
-        # Reset mock
-        session.is_lost_ticket = orig_lost
+        is_lost = is_lost_param if is_lost_param else None
+        minutes, amount = session.calculate_fee_with_settings(settings, is_lost_ticket=is_lost)
         
         return JsonResponse({
             'is_active': True,
@@ -306,15 +246,7 @@ def api_end_session(request):
             # Set values
             session.exit_time = exit_time
             session.is_lost_ticket = is_lost_ticket
-            
-            minutes, amount = session.calculate_fee(
-                hourly_rate=settings['hourly_rate'],
-                free_minutes=settings['free_minutes'],
-                min_charge_amount=settings['min_charge_amount'],
-                min_charge_duration=settings['min_charge_duration'],
-                daily_max_cap=settings['daily_max_cap'],
-                lost_ticket_penalty=settings['lost_ticket_penalty']
-            )
+            minutes, amount = session.calculate_fee_with_settings(settings)
             
             session.total_minutes = minutes
             session.amount = Decimal(str(amount))
@@ -489,21 +421,24 @@ def api_analytics_data(request):
     now = timezone.now()
     local_now = timezone.localtime(now)
     
-    # 1. Earnings Trend (Last 7 Days)
+    # 1. Earnings Trend (Last 7 Days) — single aggregated query
+    start_date = local_now.date() - timedelta(days=6)
+    day_start = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+
+    daily_revenue = {
+        row['day']: row['total'] or Decimal('0.00')
+        for row in ParkingSession.objects.filter(
+            is_active=False,
+            exit_time__gte=day_start,
+        ).annotate(day=TruncDate('exit_time')).values('day').annotate(total=Sum('amount'))
+    }
+
     earnings_trend = []
     for i in range(6, -1, -1):
         day = local_now.date() - timedelta(days=i)
-        day_start = timezone.make_aware(datetime.combine(day, datetime.min.time()))
-        day_end = timezone.make_aware(datetime.combine(day, datetime.max.time()))
-        
-        revenue = ParkingSession.objects.filter(
-            is_active=False,
-            exit_time__range=(day_start, day_end)
-        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-        
         earnings_trend.append({
             'label': day.strftime('%d-%b'),
-            'value': float(revenue)
+            'value': float(daily_revenue.get(day, Decimal('0.00'))),
         })
         
     # 2. Hourly Check-in Distribution
@@ -534,7 +469,7 @@ def api_update_rate(request):
         return JsonResponse({'error': 'Ushbu amalni bajarish uchun administrator huquqi talab qilinadi.'}, status=403)
     try:
         data = json.loads(request.body)
-        keys = ['hourly_rate', 'free_minutes', 'min_charge_amount', 'min_charge_duration', 'daily_max_cap', 'lost_ticket_penalty']
+        keys = list(NUMERIC_SETTING_KEYS)
         response_data = {}
         
         for key in keys:
@@ -797,16 +732,7 @@ def online_receipt_view(request, session_id):
     try:
         session = ParkingSession.objects.select_related('spot').get(id=session_id)
         settings = get_all_settings()
-        
-        # Calculate current fee
-        minutes, amount = session.calculate_fee(
-            hourly_rate=settings['hourly_rate'],
-            free_minutes=settings['free_minutes'],
-            min_charge_amount=settings['min_charge_amount'],
-            min_charge_duration=settings['min_charge_duration'],
-            daily_max_cap=settings['daily_max_cap'],
-            lost_ticket_penalty=settings['lost_ticket_penalty']
-        )
+        minutes, amount = session.calculate_fee_with_settings(settings)
         
         context = {
             'session': session,

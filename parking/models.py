@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 
+from parking.constants import SPOT_MULTIPLIERS
+
 class ParkingSpot(models.Model):
     SPOT_TYPES = [
         ('STANDARD', 'Standard'),
@@ -14,13 +16,7 @@ class ParkingSpot(models.Model):
     spot_type = models.CharField(max_length=15, choices=SPOT_TYPES, default='STANDARD')
 
     def get_multiplier(self):
-        if self.spot_type == 'VIP':
-            return 2.0
-        elif self.spot_type == 'DISABLED':
-            return 0.0  # Free parking for disabled individuals
-        elif self.spot_type == 'RESERVED':
-            return 1.5  # Higher multiplier for reserved spots
-        return 1.0
+        return SPOT_MULTIPLIERS.get(self.spot_type, 1.0)
 
     def __str__(self):
         return f"{self.code} ({self.get_spot_type_display()})"
@@ -114,6 +110,28 @@ class ParkingSession(models.Model):
         # Round to nearest 100 UZS
         rounded_amount = round(calculated_amount / 100.0) * 100
         return minutes, int(rounded_amount)
+
+    def calculate_fee_with_settings(self, settings=None, is_lost_ticket=None):
+        """Calculate fee using tariff settings dict (from get_all_settings)."""
+        if settings is None:
+            from parking.services import get_all_settings
+            settings = get_all_settings()
+
+        orig_lost = self.is_lost_ticket
+        if is_lost_ticket is not None:
+            self.is_lost_ticket = is_lost_ticket
+
+        try:
+            return self.calculate_fee(
+                hourly_rate=settings['hourly_rate'],
+                free_minutes=settings['free_minutes'],
+                min_charge_amount=settings['min_charge_amount'],
+                min_charge_duration=settings['min_charge_duration'],
+                daily_max_cap=settings['daily_max_cap'],
+                lost_ticket_penalty=settings['lost_ticket_penalty'],
+            )
+        finally:
+            self.is_lost_ticket = orig_lost
 
     def __str__(self):
         status = "Active" if self.is_active else "Closed"
